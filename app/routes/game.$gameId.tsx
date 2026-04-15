@@ -262,7 +262,7 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
   // UI state
   const [copied, setCopied] = useState(false);
   const [chatMessages, setChatMessages] = useState<
-    Array<{ seat: number; presetId: number; playerName: string; timestamp: number }>
+    Array<{ seat: number; text: string; playerName: string; timestamp: number }>
   >([]);
   const [chatOpen, setChatOpen] = useState(false);
   const [lastShotResult, setLastShotResult] = useState<{ row: number; col: number; result: "hit" | "miss" } | null>(null);
@@ -382,7 +382,7 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
               gameState.players.find((p) => p.seat === cb.seat)?.name ?? "Player";
             setChatMessages((prev) => [
               ...prev,
-              { seat: cb.seat, presetId: cb.presetId, playerName: senderName, timestamp: Date.now() },
+              { seat: cb.seat, text: cb.text, playerName: senderName, timestamp: Date.now() },
             ]);
             break;
           }
@@ -562,7 +562,7 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
             <Chat
               messages={chatMessages}
               yourSeat={mySeat}
-              onSend={(presetId) => send({ type: "chat", presetId })}
+              onSend={(text) => send({ type: "chat", text })}
               isOpen={chatOpen}
               onToggle={() => setChatOpen((v) => !v)}
             />

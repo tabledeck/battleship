@@ -117,7 +117,7 @@ export class BattleshipRoomDO extends BaseGameRoomDO<GameState, GameSettings, En
         break;
 
       case "chat":
-        this.broadcast(JSON.stringify({ type: "chat_broadcast", seat, presetId: msg.presetId }));
+        this.broadcast(JSON.stringify({ type: "chat_broadcast", seat, text: msg.text }));
         break;
 
       case "ping":
