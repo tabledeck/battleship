@@ -1,0 +1,45 @@
+{
+  "name": "battleship",
+  "compatibility_date": "2026-03-30",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "./workers/app.ts",
+  "assets": {
+    "directory": "./build/client"
+  },
+  "routes": [
+    {
+      "pattern": "battleship.tabledeck.us",
+      "custom_domain": true
+    }
+  ],
+  "vars": {
+    "ENVIRONMENT": "production"
+  },
+  "d1_databases": [
+    {
+      "binding": "D1_DATABASE",
+      "database_name": "battleship",
+      "database_id": "1f60c2e9-1c96-43a5-9098-2e89b96d28c5",
+      "migrations_dir": "migrations"
+    },
+    {
+      "binding": "AUTH_DB",
+      "database_name": "tabledeck-auth",
+      "database_id": "9e3645c4-fc3f-44df-8477-64a47d0637de"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "GAME_ROOM",
+        "class_name": "BattleshipRoomDO"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["BattleshipRoomDO"]
+    }
+  ]
+}
