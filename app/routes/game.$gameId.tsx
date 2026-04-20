@@ -487,6 +487,8 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
     padding: "28px",
     width: "100%",
     maxWidth: "360px",
+    maxHeight: "calc(100dvh - 32px)",
+    overflowY: "auto",
     boxShadow: "inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,22,18,0.22), 0 8px 32px rgba(0,0,0,0.7)",
     position: "relative",
     color: "var(--ink)",
@@ -652,7 +654,7 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
         >
           Home
         </a>
-        <h1 style={{
+        <h1 className="bs-header-title" style={{
           fontFamily: "var(--serif)",
           fontVariant: "small-caps",
           fontWeight: 600,

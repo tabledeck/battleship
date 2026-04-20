@@ -29,7 +29,7 @@ export function DualBoardLayout({
   opponentName,
 }: DualBoardLayoutProps) {
   return (
-    <div className="w-full max-w-4xl">
+    <div className="w-full max-w-4xl bs-boards-wrap">
       {/* Turn indicator — stencil chip */}
       <div style={{ textAlign: "center", marginBottom: "18px" }}>
         <span className="stencil-chip">
@@ -39,8 +39,8 @@ export function DualBoardLayout({
         </span>
       </div>
 
-      {/* Desktop: side by side. Mobile: attack board first */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "24px", justifyContent: "center" }}>
+      {/* Desktop: side by side. Mobile: scaled to fit viewport */}
+      <div className="bs-boards-scale" style={{ display: "flex", flexWrap: "wrap", gap: "24px", justifyContent: "center" }}>
 
         {/* Attack board (opponent's grid) */}
         <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>

@@ -15,7 +15,7 @@
   --bone-edge:      #d2c5a3;
   --ink:            #1a1612;
   --ink-soft:       #3a2f25;
-  --ink-faint:      rgba(26, 22, 18, 0.55);
+  --ink-faint:      rgba(26, 22, 18, 0.72);
 
   /* Metals */
   --gold:           #c9a24a;
@@ -268,14 +268,14 @@ button:disabled { cursor: not-allowed; }
 /* Stencil chip — turn indicator */
 .stencil-chip {
   display: inline-block;
-  padding: 8px 22px 7px;
+  padding: 9px 22px 8px;
   background: linear-gradient(180deg, var(--gold-hi) 0%, var(--gold) 48%, var(--gold-lo) 100%);
   color: var(--ink);
   font-family: var(--serif);
   font-variant: small-caps;
-  font-weight: 600;
-  font-size: 12.5px;
-  letter-spacing: 0.28em;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.2em;
   border-radius: 999px;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.55),
@@ -316,9 +316,9 @@ button:disabled { cursor: not-allowed; }
   color: var(--ink);
   font-family: var(--serif);
   font-variant: small-caps;
-  font-weight: 600;
-  font-size: 13px;
-  letter-spacing: 0.22em;
+  font-weight: 700;
+  font-size: 14.5px;
+  letter-spacing: 0.18em;
   cursor: pointer;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.55),
@@ -359,9 +359,9 @@ button:disabled { cursor: not-allowed; }
   color: var(--ink);
   font-family: var(--serif);
   font-variant: small-caps;
-  font-weight: 600;
-  font-size: 12px;
-  letter-spacing: 0.18em;
+  font-weight: 700;
+  font-size: 13.5px;
+  letter-spacing: 0.14em;
   cursor: pointer;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.7),
@@ -394,10 +394,11 @@ button:disabled { cursor: not-allowed; }
   color: var(--parchment);
   font-family: var(--serif);
   font-variant: small-caps;
-  font-size: 12px;
-  letter-spacing: 0.18em;
+  font-weight: 700;
+  font-size: 13.5px;
+  letter-spacing: 0.14em;
   cursor: pointer;
-  opacity: 0.7;
+  opacity: 0.9;
   transition: opacity 0.15s ease;
   text-decoration: none;
 }
@@ -423,8 +424,8 @@ button:disabled { cursor: not-allowed; }
   font-family: var(--serif);
   font-variant: small-caps;
   font-weight: 700;
-  font-size: 11px;
-  letter-spacing: 0.2em;
+  font-size: 12.5px;
+  letter-spacing: 0.16em;
   color: var(--peg-hit);
   border: 1.5px solid var(--peg-hit);
   padding: 1px 5px;
@@ -441,8 +442,9 @@ button:disabled { cursor: not-allowed; }
 .sc {
   font-family: var(--serif);
   font-variant: small-caps;
-  letter-spacing: 0.22em;
-  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  font-size: 13px;
   color: var(--ink-faint);
 }
 
@@ -497,9 +499,83 @@ button:disabled { cursor: not-allowed; }
   display: block;
   font-family: var(--serif);
   font-variant: small-caps;
-  font-size: 10.5px;
-  letter-spacing: 0.26em;
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.18em;
   color: var(--gold-hi);
-  opacity: 0.7;
+  opacity: 0.95;
   margin-bottom: 4px;
+}
+
+/* ======================================================
+   MOBILE RESPONSIVENESS
+   ====================================================== */
+
+/*
+ * Dual-board wrapper: on desktop boards sit side-by-side.
+ * On mobile (< 768px) we let flexWrap="wrap" in JSX do the
+ * stacking, but the fixed-pixel boards (10×34px = 340px wide
+ * each) overflow a 375px screen.  We allow horizontal scroll
+ * on the outer wrapper so the boards remain tappable, and
+ * additionally scale each board container to fit below 640px
+ * so touch targets remain usable.
+ */
+.bs-boards-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  /* pull padding back so boards aren't clipped */
+  padding-bottom: 8px;
+}
+
+/*
+ * At ≤ 639px: shrink the entire dual-board block with
+ * transform so both boards are still visible without
+ * horizontal scroll.  origin: top center keeps alignment.
+ */
+@media (max-width: 639px) {
+  .bs-boards-wrap {
+    overflow-x: visible;
+  }
+  .bs-boards-scale {
+    transform-origin: top center;
+    /* scale so 720px of boards fits into the viewport */
+    transform: scale(calc(min(100vw, 640px) / 760));
+    width: 760px; /* natural content width */
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/*
+ * Placement phase: constrain the drag board so it fits.
+ */
+@media (max-width: 639px) {
+  /* The placement card uses flexWrap: wrap; give items room */
+  .bs-placement-controls {
+    min-width: 0 !important;
+    width: 100%;
+  }
+}
+
+/*
+ * Header — shrink font sizes at narrow widths.
+ */
+@media (max-width: 639px) {
+  .bs-header-title {
+    font-size: 16px !important;
+    letter-spacing: 0.18em !important;
+  }
+}
+
+/*
+ * Modal — prevent overflow on very small screens.
+ */
+@media (max-width: 479px) {
+  .bs-modal-box {
+    padding: 20px 16px !important;
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+  }
 }
