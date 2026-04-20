@@ -5,12 +5,12 @@ import { ShipSvg } from "../ships/ShipSvg";
 
 const CELL_SIZE = 34;
 
+// Column labels A–J
+const COL_LABELS = ["A","B","C","D","E","F","G","H","I","J"];
+
 interface AttackBoardProps {
-  /** Attacks you have made on the opponent */
   attacks: Record<string, "hit" | "miss">;
-  /** Opponent ships you have fully sunk (revealed) */
   sunkShips: PlacedShip[];
-  /** Whether it's your turn — cells are clickable */
   isMyTurn: boolean;
   onFire: (row: number, col: number) => void;
   label?: string;
@@ -23,7 +23,6 @@ export function AttackBoard({
   onFire,
   label = "Opponent's Grid",
 }: AttackBoardProps) {
-  // Occupied by revealed (sunk) ships
   const sunkCells = new Set<string>();
   for (const ship of sunkShips) {
     for (const cell of getShipCells(ship)) {
@@ -45,66 +44,113 @@ export function AttackBoard({
     return !attacks[key];
   };
 
+  const borderColor = isMyTurn
+    ? "2px solid rgba(201,162,74,0.55)"
+    : "2px solid rgba(255,255,255,0.08)";
+
+  const outerGlow = isMyTurn
+    ? "0 0 18px rgba(201,162,74,0.2), inset 0 0 24px rgba(0,0,0,0.35)"
+    : "inset 0 0 24px rgba(0,0,0,0.35)";
+
   return (
     <div>
-      <p className="text-gray-400 text-xs mb-1 font-medium">{label}</p>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${BOARD_SIZE}, ${CELL_SIZE}px)`,
-          gridTemplateRows: `repeat(${BOARD_SIZE}, ${CELL_SIZE}px)`,
-          position: "relative",
-          border: isMyTurn
-            ? "2px solid rgba(59,130,246,0.5)"
-            : "2px solid rgba(255,255,255,0.06)",
-          borderRadius: 4,
-          overflow: "visible",
-          backgroundColor: "rgba(7, 24, 55, 0.8)",
-          boxShadow: isMyTurn
-            ? "0 0 12px rgba(59,130,246,0.3), inset 0 0 20px rgba(0,0,0,0.5)"
-            : "inset 0 0 20px rgba(0,0,0,0.5)",
-        }}
-      >
-        {Array.from({ length: BOARD_SIZE }, (_, row) =>
-          Array.from({ length: BOARD_SIZE }, (_, col) => (
-            <BoardCell
-              key={`${row},${col}`}
-              row={row}
-              col={col}
-              state={getCellState(row, col)}
-              cellSize={CELL_SIZE}
-              clickable={isCellClickable(row, col)}
-              onClick={isMyTurn ? onFire : undefined}
-            />
-          ))
-        )}
+      {/* Label */}
+      <p style={{
+        fontFamily: "var(--serif)",
+        fontVariant: "small-caps",
+        letterSpacing: "0.22em",
+        fontSize: "11px",
+        color: isMyTurn ? "var(--gold)" : "rgba(246,239,224,0.45)",
+        marginBottom: "6px",
+      }}>{label}</p>
 
-        {/* Revealed sunk ships */}
-        {sunkShips.map((ship) => {
-          const cells = getShipCells(ship);
-          if (cells.length === 0) return null;
-          const first = cells[0];
-          return (
-            <div
-              key={`sunk-${ship.type}`}
-              style={{
-                position: "absolute",
-                top: first.row * CELL_SIZE,
-                left: first.col * CELL_SIZE,
-                pointerEvents: "none",
-                zIndex: 2,
-                opacity: 0.6,
-              }}
-            >
-              <ShipSvg
-                type={ship.type}
-                orientation={ship.orientation}
+      {/* Column labels */}
+      <div style={{ display: "flex", paddingLeft: "20px", marginBottom: "2px" }}>
+        {COL_LABELS.map((l) => (
+          <div key={l} style={{
+            width: CELL_SIZE,
+            textAlign: "center",
+            fontFamily: "var(--mono)",
+            fontSize: "9px",
+            color: "rgba(255,255,255,0.25)",
+            lineHeight: 1,
+          }}>{l}</div>
+        ))}
+      </div>
+
+      <div style={{ display: "flex" }}>
+        {/* Row numbers */}
+        <div style={{ display: "flex", flexDirection: "column", marginRight: "2px" }}>
+          {Array.from({ length: BOARD_SIZE }, (_, row) => (
+            <div key={row} style={{
+              height: CELL_SIZE,
+              width: "18px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              fontFamily: "var(--mono)",
+              fontSize: "9px",
+              color: "rgba(255,255,255,0.25)",
+              paddingRight: "3px",
+            }}>{row + 1}</div>
+          ))}
+        </div>
+
+        {/* Board */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(${BOARD_SIZE}, ${CELL_SIZE}px)`,
+            gridTemplateRows: `repeat(${BOARD_SIZE}, ${CELL_SIZE}px)`,
+            position: "relative",
+            border: borderColor,
+            borderRadius: 4,
+            overflow: "visible",
+            boxShadow: outerGlow,
+          }}
+        >
+          {Array.from({ length: BOARD_SIZE }, (_, row) =>
+            Array.from({ length: BOARD_SIZE }, (_, col) => (
+              <BoardCell
+                key={`${row},${col}`}
+                row={row}
+                col={col}
+                state={getCellState(row, col)}
                 cellSize={CELL_SIZE}
-                sunk
+                clickable={isCellClickable(row, col)}
+                onClick={isMyTurn ? onFire : undefined}
+                boardType="attack"
               />
-            </div>
-          );
-        })}
+            ))
+          )}
+
+          {/* Revealed sunk ships */}
+          {sunkShips.map((ship) => {
+            const cells = getShipCells(ship);
+            if (cells.length === 0) return null;
+            const first = cells[0];
+            return (
+              <div
+                key={`sunk-${ship.type}`}
+                style={{
+                  position: "absolute",
+                  top: first.row * CELL_SIZE,
+                  left: first.col * CELL_SIZE,
+                  pointerEvents: "none",
+                  zIndex: 2,
+                  opacity: 0.65,
+                }}
+              >
+                <ShipSvg
+                  type={ship.type}
+                  orientation={ship.orientation}
+                  cellSize={CELL_SIZE}
+                  sunk
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

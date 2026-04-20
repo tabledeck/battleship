@@ -30,24 +30,35 @@ export function DualBoardLayout({
 }: DualBoardLayoutProps) {
   return (
     <div className="w-full max-w-4xl">
-      {/* Turn indicator */}
-      <div className={`text-center py-2 mb-4 rounded-lg text-sm font-semibold ${
-        isMyTurn ? "bg-blue-900/40 text-blue-300 border border-blue-700" : "bg-gray-800 text-gray-400 border border-gray-700"
-      }`}>
-        {isMyTurn ? "Your turn — click the opponent's grid to fire!" : `${opponentName}'s turn...`}
+      {/* Turn indicator — stencil chip */}
+      <div style={{ textAlign: "center", marginBottom: "18px" }}>
+        <span className="stencil-chip">
+          {isMyTurn
+            ? "Captain · Your Move"
+            : `Awaiting ${opponentName}`}
+        </span>
       </div>
 
       {/* Desktop: side by side. Mobile: attack board first */}
-      <div className="flex flex-col md:flex-row gap-6 justify-center">
-        {/* Attack board (opponent's grid) — shown first on mobile */}
-        <div className="flex flex-col gap-3">
-          <AttackBoard
-            attacks={myAttacks}
-            sunkShips={opponentSunkShips}
-            isMyTurn={isMyTurn}
-            onFire={onFire}
-            label={`${opponentName}'s Grid`}
-          />
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "24px", justifyContent: "center" }}>
+
+        {/* Attack board (opponent's grid) */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          {/* Steel board frame */}
+          <div className="board-frame">
+            {/* Rivets at corners */}
+            <div style={{ position: "absolute", top: "9px", left: "9px" }} className="rivet" />
+            <div style={{ position: "absolute", top: "9px", right: "9px" }} className="rivet" />
+            <div style={{ position: "absolute", bottom: "9px", left: "9px" }} className="rivet" />
+            <div style={{ position: "absolute", bottom: "9px", right: "9px" }} className="rivet" />
+            <AttackBoard
+              attacks={myAttacks}
+              sunkShips={opponentSunkShips}
+              isMyTurn={isMyTurn}
+              onFire={onFire}
+              label={`${opponentName}'s Grid`}
+            />
+          </div>
           <ShipStatusPanel
             sunkShips={opponentSunkShips}
             shipsRemaining={opponentShipsRemaining}
@@ -56,15 +67,52 @@ export function DualBoardLayout({
         </div>
 
         {/* Fleet board (your grid) */}
-        <div className="flex flex-col gap-3">
-          <FleetBoard
-            fleet={myFleet}
-            incomingAttacks={myIncomingAttacks}
-            label={`${myName}'s Fleet`}
-          />
-          <div className="bg-gray-900 rounded-lg border border-gray-700 p-3">
-            <p className="text-gray-400 text-xs font-medium">Your Fleet</p>
-            <p className="text-gray-300 text-sm mt-1">
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          {/* Steel board frame (slightly warmer tint for "yours") */}
+          <div className="board-frame" style={{
+            background: `
+              repeating-linear-gradient(88deg,
+                rgba(0,0,0,0.18) 0px,
+                rgba(0,0,0,0.18) 1px,
+                transparent 1px,
+                transparent 6px
+              ),
+              linear-gradient(180deg, #1a3455 0%, #0f2240 60%, #081525 100%)`,
+          }}>
+            {/* Rivets at corners */}
+            <div style={{ position: "absolute", top: "9px", left: "9px" }} className="rivet" />
+            <div style={{ position: "absolute", top: "9px", right: "9px" }} className="rivet" />
+            <div style={{ position: "absolute", bottom: "9px", left: "9px" }} className="rivet" />
+            <div style={{ position: "absolute", bottom: "9px", right: "9px" }} className="rivet" />
+            <FleetBoard
+              fleet={myFleet}
+              incomingAttacks={myIncomingAttacks}
+              label={`${myName}'s Fleet`}
+            />
+          </div>
+
+          {/* Fleet count panel */}
+          <div style={{
+            background: "linear-gradient(180deg, rgba(15,29,51,0.9) 0%, rgba(8,21,37,0.95) 100%)",
+            border: "1px solid rgba(100,160,255,0.15)",
+            borderRadius: "6px",
+            padding: "10px 14px",
+          }}>
+            <p style={{
+              fontFamily: "var(--serif)",
+              fontVariant: "small-caps",
+              letterSpacing: "0.22em",
+              fontSize: "10px",
+              color: "var(--gold-hi)",
+              opacity: 0.7,
+            }}>Your Fleet</p>
+            <p style={{
+              fontFamily: "var(--mono)",
+              fontSize: "13px",
+              color: "var(--bone)",
+              marginTop: "4px",
+              fontVariantNumeric: "tabular-nums",
+            }}>
               {myShipsRemaining} ship{myShipsRemaining !== 1 ? "s" : ""} remaining
             </p>
           </div>

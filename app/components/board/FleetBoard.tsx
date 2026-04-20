@@ -6,16 +6,14 @@ import { ShipSvg } from "../ships/ShipSvg";
 
 const CELL_SIZE = 34;
 
+// Column labels A–J
+const COL_LABELS = ["A","B","C","D","E","F","G","H","I","J"];
+
 interface FleetBoardProps {
-  /** Your placed fleet (confirmed or pending during placement) */
   fleet: PlacedShip[];
-  /** Attacks made BY your opponent on your grid */
   incomingAttacks: Record<string, "hit" | "miss">;
-  /** Whether this board should accept drops (during placement phase) */
   droppable?: boolean;
-  /** Preview ship while dragging over this board */
   previewShip?: PlacedShip | null;
-  /** Highlight these cells red (overlap preview) */
   label?: string;
 }
 
@@ -28,7 +26,6 @@ export function FleetBoard({
 }: FleetBoardProps) {
   const { setNodeRef, isOver } = useDroppable({ id: "fleet-board" });
 
-  // Build cell lookup
   const shipCells = new Map<string, PlacedShip>();
   for (const ship of fleet) {
     for (const cell of getShipCells(ship)) {
@@ -36,7 +33,6 @@ export function FleetBoard({
     }
   }
 
-  // Preview cells
   const previewCells = new Map<string, "valid" | "invalid">();
   if (previewShip && droppable) {
     const cells = getShipCells(previewShip);
@@ -63,88 +59,134 @@ export function FleetBoard({
     return "empty";
   };
 
+  const borderColor = isOver
+    ? "2px solid rgba(201,162,74,0.7)"
+    : "2px solid rgba(15,29,51,0.4)";
+
   return (
     <div>
-      <p className="text-gray-400 text-xs mb-1 font-medium">{label}</p>
-      <div
-        ref={droppable ? setNodeRef : undefined}
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${BOARD_SIZE}, ${CELL_SIZE}px)`,
-          gridTemplateRows: `repeat(${BOARD_SIZE}, ${CELL_SIZE}px)`,
-          position: "relative",
-          border: isOver ? "2px solid rgba(59,130,246,0.6)" : "2px solid rgba(255,255,255,0.06)",
-          borderRadius: 4,
-          overflow: "visible",
-          backgroundColor: "rgba(7, 24, 55, 0.8)",
-          boxShadow: "inset 0 0 20px rgba(0,0,0,0.5)",
-        }}
-      >
-        {/* Grid cells */}
-        {Array.from({ length: BOARD_SIZE }, (_, row) =>
-          Array.from({ length: BOARD_SIZE }, (_, col) => (
-            <BoardCell
-              key={`${row},${col}`}
-              row={row}
-              col={col}
-              state={getCellState(row, col)}
-              cellSize={CELL_SIZE}
-            />
-          ))
-        )}
+      {/* Label */}
+      <p style={{
+        fontFamily: "var(--serif)",
+        fontVariant: "small-caps",
+        letterSpacing: "0.22em",
+        fontSize: "11px",
+        color: "var(--ink-soft)",
+        marginBottom: "6px",
+      }}>{label}</p>
 
-        {/* Ship SVG overlays */}
-        {fleet.map((ship) => {
-          const cells = getShipCells(ship);
-          if (cells.length === 0) return null;
-          const first = cells[0];
-          const isSunk = ship.hits.length >= getShipSize(ship.type);
-          return (
-            <div
-              key={`ship-${ship.type}`}
-              style={{
-                position: "absolute",
-                top: first.row * CELL_SIZE,
-                left: first.col * CELL_SIZE,
-                pointerEvents: "none",
-                zIndex: 2,
-                opacity: isSunk ? 0.5 : 1,
-              }}
-            >
-              <ShipSvg
-                type={ship.type}
-                orientation={ship.orientation}
-                cellSize={CELL_SIZE}
-                sunk={isSunk}
-              />
-            </div>
-          );
-        })}
+      {/* Column labels */}
+      <div style={{ display: "flex", paddingLeft: "20px", marginBottom: "2px" }}>
+        {COL_LABELS.map((l) => (
+          <div key={l} style={{
+            width: CELL_SIZE,
+            textAlign: "center",
+            fontFamily: "var(--mono)",
+            fontSize: "9px",
+            color: "rgba(15,29,51,0.5)",
+            lineHeight: 1,
+          }}>{l}</div>
+        ))}
+      </div>
 
-        {/* Preview ship overlay */}
-        {previewShip && droppable && (() => {
-          const cells = getShipCells(previewShip);
-          if (cells.length === 0) return null;
-          const first = cells[0];
-          return (
-            <div
-              style={{
-                position: "absolute",
-                top: first.row * CELL_SIZE,
-                left: first.col * CELL_SIZE,
-                pointerEvents: "none",
-                zIndex: 3,
-                opacity: 0.7,
-              }}
-            >
-              <ShipSvg
-                type={previewShip.type}
-                orientation={previewShip.orientation}
+      <div style={{ display: "flex" }}>
+        {/* Row numbers */}
+        <div style={{ display: "flex", flexDirection: "column", marginRight: "2px" }}>
+          {Array.from({ length: BOARD_SIZE }, (_, row) => (
+            <div key={row} style={{
+              height: CELL_SIZE,
+              width: "18px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+              fontFamily: "var(--mono)",
+              fontSize: "9px",
+              color: "rgba(15,29,51,0.5)",
+              paddingRight: "3px",
+            }}>{row + 1}</div>
+          ))}
+        </div>
+
+        {/* Board */}
+        <div
+          ref={droppable ? setNodeRef : undefined}
+          style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(${BOARD_SIZE}, ${CELL_SIZE}px)`,
+            gridTemplateRows: `repeat(${BOARD_SIZE}, ${CELL_SIZE}px)`,
+            position: "relative",
+            border: borderColor,
+            borderRadius: 4,
+            overflow: "visible",
+            boxShadow: "inset 0 0 24px rgba(15,29,51,0.15)",
+          }}
+        >
+          {Array.from({ length: BOARD_SIZE }, (_, row) =>
+            Array.from({ length: BOARD_SIZE }, (_, col) => (
+              <BoardCell
+                key={`${row},${col}`}
+                row={row}
+                col={col}
+                state={getCellState(row, col)}
                 cellSize={CELL_SIZE}
+                boardType="fleet"
               />
-            </div>
-          );
-        })()}
+            ))
+          )}
+
+          {/* Ship SVG overlays */}
+          {fleet.map((ship) => {
+            const cells = getShipCells(ship);
+            if (cells.length === 0) return null;
+            const first = cells[0];
+            const isSunk = ship.hits.length >= getShipSize(ship.type);
+            return (
+              <div
+                key={`ship-${ship.type}`}
+                style={{
+                  position: "absolute",
+                  top: first.row * CELL_SIZE,
+                  left: first.col * CELL_SIZE,
+                  pointerEvents: "none",
+                  zIndex: 2,
+                  opacity: isSunk ? 0.55 : 1,
+                }}
+              >
+                <ShipSvg
+                  type={ship.type}
+                  orientation={ship.orientation}
+                  cellSize={CELL_SIZE}
+                  sunk={isSunk}
+                />
+              </div>
+            );
+          })}
+
+          {/* Preview ship overlay */}
+          {previewShip && droppable && (() => {
+            const cells = getShipCells(previewShip);
+            if (cells.length === 0) return null;
+            const first = cells[0];
+            return (
+              <div
+                style={{
+                  position: "absolute",
+                  top: first.row * CELL_SIZE,
+                  left: first.col * CELL_SIZE,
+                  pointerEvents: "none",
+                  zIndex: 3,
+                  opacity: 0.75,
+                }}
+              >
+                <ShipSvg
+                  type={previewShip.type}
+                  orientation={previewShip.orientation}
+                  cellSize={CELL_SIZE}
+                />
+              </div>
+            );
+          })()}
+        </div>
       </div>
     </div>
   );

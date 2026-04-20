@@ -14,7 +14,14 @@ export function ActivePhase({ mySeat, myFleet, players, currentTurn, onFire }: A
   const opponent = players.find((p) => p.seat !== mySeat);
 
   if (!me || !opponent) {
-    return <p className="text-gray-400">Waiting for players...</p>;
+    return (
+      <p style={{
+        fontFamily: "var(--serif)",
+        fontStyle: "italic",
+        fontSize: "13px",
+        color: "rgba(246,239,224,0.35)",
+      }}>Waiting for players...</p>
+    );
   }
 
   const isMyTurn = currentTurn === mySeat;

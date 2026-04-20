@@ -468,40 +468,105 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
   const opponentReady = opponent?.ready ?? false;
   const winnerPlayer = winner !== null ? players.find((p) => p.seat === winner) : null;
 
+  // Shared modal overlay style
+  const modalOverlay: React.CSSProperties = {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(4,10,20,0.82)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 50,
+    padding: "16px",
+  };
+
+  // Shared modal box style (uses scroll/plaque aesthetic)
+  const modalBox: React.CSSProperties = {
+    background: "linear-gradient(180deg, var(--bone) 0%, #e2d4b0 100%)",
+    borderRadius: "10px",
+    padding: "28px",
+    width: "100%",
+    maxWidth: "360px",
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(26,22,18,0.22), 0 8px 32px rgba(0,0,0,0.7)",
+    position: "relative",
+    color: "var(--ink)",
+  };
+
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col items-center p-2 gap-3">
+    <div
+      className="min-h-screen game-surface flex flex-col items-center p-2"
+      style={{ gap: "12px" }}
+    >
       {/* Guest name modal */}
       {showNameModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-sm border border-gray-700">
-            <h2 className="text-white font-bold text-xl mb-1">Join Game</h2>
-            <p className="text-gray-400 text-sm mb-4">
+        <div style={modalOverlay}>
+          <div style={modalBox}>
+            {/* Rivets */}
+            <div style={{ position: "absolute", top: "10px", left: "10px" }} className="rivet" />
+            <div style={{ position: "absolute", top: "10px", right: "10px" }} className="rivet" />
+
+            <h2 style={{
+              fontFamily: "var(--serif)",
+              fontVariant: "small-caps",
+              fontWeight: 600,
+              fontSize: "20px",
+              letterSpacing: "0.2em",
+              color: "var(--ink)",
+              marginBottom: "6px",
+              marginTop: 0,
+            }}>Join Game</h2>
+            <p style={{
+              fontFamily: "var(--sans)",
+              fontSize: "12px",
+              color: "var(--ink-soft)",
+              marginBottom: "20px",
+            }}>
               Enter a name to play as a guest, or{" "}
-              <a href="/login" className="text-blue-400 hover:underline">sign in</a>{" "}
+              <a href="/login" style={{ color: "var(--ink)", fontWeight: 600, textDecoration: "underline" }}>sign in</a>{" "}
               for a profile.
             </p>
             {(joinFetcher.data as any)?.error && (
-              <p className="text-red-400 text-sm mb-3">{(joinFetcher.data as any).error}</p>
+              <p style={{ fontFamily: "var(--sans)", fontSize: "12px", color: "var(--copper)", marginBottom: "10px", textAlign: "center" }}>
+                {(joinFetcher.data as any).error}
+              </p>
             )}
-            <input
-              autoFocus
-              type="text"
-              placeholder="Your name"
-              value={guestName}
-              onChange={(e) => setGuestName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleJoinAsGuest()}
-              maxLength={20}
-              disabled={joinFetcher.state !== "idle"}
-              className="w-full bg-gray-800 text-white rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 mb-3 disabled:opacity-50"
-            />
+            <div style={{ marginBottom: "16px" }}>
+              <label className="td-input-label" style={{ color: "var(--ink-soft)" }}>Your Name</label>
+              <input
+                autoFocus
+                type="text"
+                placeholder="Captain..."
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleJoinAsGuest()}
+                maxLength={20}
+                disabled={joinFetcher.state !== "idle"}
+                className="td-input"
+                style={{ color: "var(--ink)", borderBottomColor: "rgba(26,22,18,0.3)" }}
+              />
+            </div>
             <button
               onClick={handleJoinAsGuest}
               disabled={joinFetcher.state !== "idle" || !guestName.trim()}
-              className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg px-4 py-3"
+              className="btn-primary"
+              style={{ width: "100%" }}
             >
-              {joinFetcher.state !== "idle" ? "Joining..." : "Join"}
+              {joinFetcher.state !== "idle" ? "Joining..." : "Board Ship"}
             </button>
-            <a href="/" className="block w-full text-center text-gray-400 hover:text-white text-sm mt-3 py-2">
+            <a
+              href="/"
+              style={{
+                display: "block",
+                textAlign: "center",
+                fontFamily: "var(--serif)",
+                fontVariant: "small-caps",
+                fontSize: "11px",
+                color: "var(--ink-faint)",
+                marginTop: "14px",
+                textDecoration: "none",
+                letterSpacing: "0.16em",
+              }}
+            >
               Cancel
             </a>
           </div>
@@ -510,19 +575,34 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
 
       {/* Game over modal */}
       {status === "finished" && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-sm border border-gray-700 text-center">
-            <h2 className="text-white font-bold text-2xl mb-2">
-              {winnerPlayer?.seat === mySeat ? "You Win!" : "You Lose!"}
+        <div style={modalOverlay}>
+          <div style={{ ...modalBox, textAlign: "center" }}>
+            <div style={{ position: "absolute", top: "10px", left: "10px" }} className="rivet" />
+            <div style={{ position: "absolute", top: "10px", right: "10px" }} className="rivet" />
+
+            <h2 style={{
+              fontFamily: "var(--serif)",
+              fontVariant: "small-caps",
+              fontWeight: 700,
+              fontSize: "26px",
+              letterSpacing: "0.16em",
+              color: winnerPlayer?.seat === mySeat ? "var(--ink)" : "var(--copper)",
+              marginTop: 0,
+              marginBottom: "8px",
+            }}>
+              {winnerPlayer?.seat === mySeat ? "Victory!" : "Defeated"}
             </h2>
-            <p className="text-gray-400 text-lg mb-6">
-              {winnerPlayer?.name ?? "Someone"} sunk all the ships!
+            <p style={{
+              fontFamily: "var(--serif)",
+              fontStyle: "italic",
+              fontSize: "14px",
+              color: "var(--ink-soft)",
+              marginBottom: "24px",
+            }}>
+              {winnerPlayer?.name ?? "Someone"} sunk all the ships.
             </p>
-            <a
-              href="/"
-              className="block bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg px-4 py-3"
-            >
-              New Game
+            <a href="/" className="btn-primary" style={{ display: "inline-flex" }}>
+              New Engagement
             </a>
           </div>
         </div>
@@ -530,33 +610,65 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
 
       {/* Guess reveal overlay */}
       {guessReveal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-40 p-4">
-          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-sm border border-blue-700 text-center">
-            <h3 className="text-white font-bold text-xl mb-2">Secret number: {guessReveal.guessTarget}</h3>
-            <div className="space-y-1 mb-4">
+        <div style={{ ...modalOverlay, zIndex: 40 }}>
+          <div style={{ ...modalBox, textAlign: "center" }}>
+            <h3 style={{
+              fontFamily: "var(--serif)",
+              fontVariant: "small-caps",
+              fontSize: "16px",
+              letterSpacing: "0.2em",
+              color: "var(--ink)",
+              marginTop: 0,
+              marginBottom: "6px",
+            }}>Secret Number: {guessReveal.guessTarget}</h3>
+            <div style={{ marginBottom: "16px" }}>
               {sortedPlayers.map((p) => (
-                <p key={p.seat} className="text-gray-300">
+                <p key={p.seat} style={{ fontFamily: "var(--sans)", fontSize: "13px", color: "var(--ink-soft)", margin: "4px 0" }}>
                   {p.name}: guessed {guessReveal.guesses[p.seat] ?? "?"}
                 </p>
               ))}
             </div>
-            <p className="text-blue-400 font-semibold">
-              {players.find((p) => p.seat === guessReveal.firstSeat)?.name ?? "Player"} goes first!
+            <p style={{ fontFamily: "var(--serif)", fontWeight: 600, fontSize: "14px", color: "var(--walnut)" }}>
+              {players.find((p) => p.seat === guessReveal.firstSeat)?.name ?? "Player"} opens fire first.
             </p>
           </div>
         </div>
       )}
 
       {/* Header */}
-      <div className="w-full max-w-4xl flex items-center justify-between">
-        <a href="/" className="text-gray-400 hover:text-white text-sm">← Home</a>
-        <h1 className="text-white font-bold">Battleship</h1>
-        <div className="flex items-center gap-3">
+      <div className="w-full max-w-4xl" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 0" }}>
+        <a
+          href="/"
+          style={{
+            fontFamily: "var(--serif)",
+            fontVariant: "small-caps",
+            fontSize: "11px",
+            letterSpacing: "0.22em",
+            color: "rgba(246,239,224,0.4)",
+            textDecoration: "none",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--gold)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(246,239,224,0.4)")}
+        >
+          Home
+        </a>
+        <h1 style={{
+          fontFamily: "var(--serif)",
+          fontVariant: "small-caps",
+          fontWeight: 600,
+          fontSize: "20px",
+          letterSpacing: "0.3em",
+          color: "var(--gold-hi)",
+          margin: 0,
+          textShadow: "0 1px 0 rgba(0,0,0,0.4)",
+        }}>Battleship</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <button
             onClick={handleCopyLink}
-            className="text-blue-400 hover:text-blue-300 text-sm"
+            className="btn-ghost"
+            style={{ padding: "4px 10px" }}
           >
-            {copied ? "Copied!" : "Share link"}
+            {copied ? "Copied!" : "Share Link"}
           </button>
           {mySeat >= 0 && (
             <Chat
@@ -570,71 +682,181 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
         </div>
       </div>
 
-      {/* Player list (always shown) */}
-      <div className="w-full max-w-4xl flex gap-2">
-        {sortedPlayers.map((p) => (
-          <div
-            key={p.seat}
-            className={`flex-1 rounded-lg px-3 py-2 text-sm border ${
-              p.seat === currentTurn && status === "active"
-                ? "bg-blue-900/40 border-blue-700 text-blue-300"
-                : "bg-gray-900 border-gray-700 text-gray-300"
-            }`}
-          >
-            <span className="font-medium">{p.name}</span>
-            {p.seat === mySeat && <span className="text-gray-500 text-xs ml-1">(you)</span>}
-            {!p.connected && <span className="text-gray-600 text-xs ml-1">⚫</span>}
-            {status === "placing" && (
-              <span className={`text-xs ml-2 ${p.ready ? "text-green-400" : "text-gray-500"}`}>
-                {p.ready ? "Ready" : "Placing..."}
-              </span>
-            )}
-          </div>
-        ))}
+      {/* Player list */}
+      <div className="w-full max-w-4xl" style={{ display: "flex", gap: "8px" }}>
+        {sortedPlayers.map((p) => {
+          const isActive = p.seat === currentTurn && status === "active";
+          return (
+            <div
+              key={p.seat}
+              style={{
+                flex: 1,
+                borderRadius: "6px",
+                padding: "8px 12px",
+                border: isActive
+                  ? "1px solid rgba(201,162,74,0.45)"
+                  : "1px solid rgba(100,160,255,0.12)",
+                background: isActive
+                  ? "linear-gradient(90deg, rgba(201,162,74,0.12), transparent 80%)"
+                  : "rgba(15,29,51,0.6)",
+                boxShadow: isActive ? "inset 2px 0 0 var(--gold)" : "none",
+              }}
+            >
+              <span style={{
+                fontFamily: "var(--serif)",
+                fontWeight: 600,
+                fontSize: "14px",
+                color: isActive ? "var(--gold-hi)" : "var(--bone)",
+                opacity: isActive ? 1 : 0.7,
+              }}>{p.name}</span>
+              {p.seat === mySeat && (
+                <span style={{
+                  fontFamily: "var(--mono)",
+                  fontSize: "9px",
+                  color: "rgba(246,239,224,0.3)",
+                  marginLeft: "6px",
+                  letterSpacing: "0.1em",
+                }}>(you)</span>
+              )}
+              {!p.connected && (
+                <span style={{
+                  display: "inline-block",
+                  width: "6px",
+                  height: "6px",
+                  borderRadius: "50%",
+                  background: "rgba(120,120,120,0.5)",
+                  marginLeft: "6px",
+                  verticalAlign: "middle",
+                }} />
+              )}
+              {status === "placing" && (
+                <span style={{
+                  fontFamily: "var(--mono)",
+                  fontSize: "10px",
+                  marginLeft: "8px",
+                  color: p.ready ? "var(--gold)" : "rgba(246,239,224,0.3)",
+                  letterSpacing: "0.06em",
+                }}>
+                  {p.ready ? "Ready" : "Placing..."}
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Waiting phase */}
       {status === "waiting" && (
-        <div className="bg-gray-900 rounded-xl border border-gray-700 p-4 w-full max-w-4xl text-center">
-          <p className="text-white font-medium mb-2">
-            Waiting for players ({sortedPlayers.length}/{maxPlayers})
+        <div style={{
+          background: "linear-gradient(180deg, rgba(15,29,51,0.95) 0%, rgba(8,21,37,0.98) 100%)",
+          border: "1px solid rgba(100,160,255,0.15)",
+          borderRadius: "10px",
+          padding: "20px 24px",
+          width: "100%",
+          maxWidth: "896px",
+          textAlign: "center",
+          boxShadow: "inset 0 1px 0 rgba(100,160,255,0.08), 0 8px 24px rgba(0,0,0,0.5)",
+          position: "relative",
+        }}>
+          <div style={{ position: "absolute", top: "10px", left: "10px" }} className="rivet" />
+          <div style={{ position: "absolute", top: "10px", right: "10px" }} className="rivet" />
+          <p style={{
+            fontFamily: "var(--serif)",
+            fontVariant: "small-caps",
+            fontSize: "14px",
+            letterSpacing: "0.22em",
+            color: "var(--gold-hi)",
+            opacity: 0.8,
+            marginBottom: "14px",
+          }}>
+            Awaiting Fleet · {sortedPlayers.length}/{maxPlayers}
           </p>
-          <button
-            onClick={handleCopyLink}
-            className="bg-blue-700 hover:bg-blue-600 text-white rounded-lg px-4 py-2 text-sm"
-          >
-            {copied ? "Copied!" : "Copy invite link"}
+          <button onClick={handleCopyLink} className="btn-primary">
+            {copied ? "Link Copied!" : "Copy Invite Link"}
           </button>
-          <p className="text-gray-500 text-xs mt-2">{shareUrl}</p>
+          <p style={{
+            fontFamily: "var(--mono)",
+            fontSize: "10px",
+            color: "rgba(246,239,224,0.25)",
+            marginTop: "10px",
+          }}>{shareUrl}</p>
         </div>
       )}
 
       {/* Guessing phase */}
       {status === "guessing" && (
-        <div className="bg-gray-900 rounded-xl border border-gray-700 p-5 w-full max-w-4xl text-center">
-          <p className="text-white font-bold text-lg mb-1">Guess a number 1–10</p>
-          <p className="text-gray-400 text-sm mb-4">Closest to the secret number goes first!</p>
+        <div style={{
+          background: "linear-gradient(180deg, rgba(15,29,51,0.95) 0%, rgba(8,21,37,0.98) 100%)",
+          border: "1px solid rgba(100,160,255,0.15)",
+          borderRadius: "10px",
+          padding: "24px",
+          width: "100%",
+          maxWidth: "896px",
+          textAlign: "center",
+          position: "relative",
+        }}>
+          <div style={{ position: "absolute", top: "10px", left: "10px" }} className="rivet" />
+          <div style={{ position: "absolute", top: "10px", right: "10px" }} className="rivet" />
+          <p style={{
+            fontFamily: "var(--serif)",
+            fontVariant: "small-caps",
+            fontWeight: 600,
+            fontSize: "16px",
+            letterSpacing: "0.22em",
+            color: "var(--gold-hi)",
+            marginBottom: "4px",
+          }}>Guess a Number 1–10</p>
+          <p style={{
+            fontFamily: "var(--serif)",
+            fontStyle: "italic",
+            fontSize: "12px",
+            color: "rgba(246,239,224,0.45)",
+            marginBottom: "18px",
+          }}>Closest to the secret number opens fire first.</p>
+
           {mySeat >= 0 && myGuess === null ? (
-            <div className="flex flex-wrap justify-center gap-2 mb-4">
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px", marginBottom: "16px" }}>
               {[1,2,3,4,5,6,7,8,9,10].map((n) => (
                 <button
                   key={n}
                   onClick={() => handleGuessNumber(n)}
-                  className="w-10 h-10 rounded-lg bg-gray-700 hover:bg-blue-600 text-white font-bold text-sm transition-colors"
+                  style={{
+                    width: "42px",
+                    height: "42px",
+                    borderRadius: "6px",
+                    background: "linear-gradient(180deg, var(--bone) 0%, #e2d4b0 100%)",
+                    border: "1px solid rgba(26,22,18,0.3)",
+                    color: "var(--ink)",
+                    fontFamily: "var(--mono)",
+                    fontWeight: 700,
+                    fontSize: "15px",
+                    cursor: "pointer",
+                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.7), 0 2px 4px rgba(0,0,0,0.3)",
+                    transition: "transform 0.1s ease",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-2px)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
                 >
                   {n}
                 </button>
               ))}
             </div>
           ) : (
-            <p className="text-blue-400 font-medium mb-4">
+            <p style={{
+              fontFamily: "var(--serif)",
+              fontVariant: "small-caps",
+              fontSize: "13px",
+              color: "var(--gold)",
+              letterSpacing: "0.18em",
+              marginBottom: "16px",
+            }}>
               {mySeat >= 0 ? `You guessed ${myGuess}` : "Spectating"}
             </p>
           )}
-          <div className="space-y-1">
+          <div>
             {sortedPlayers.map((p) => (
-              <p key={p.seat} className="text-gray-400 text-sm">
-                {p.name}: {guesses[p.seat] !== undefined && guesses[p.seat] !== null ? "guessed ✓" : "waiting..."}
+              <p key={p.seat} style={{ fontFamily: "var(--sans)", fontSize: "12px", color: "rgba(246,239,224,0.45)", margin: "4px 0" }}>
+                {p.name}: {guesses[p.seat] !== undefined && guesses[p.seat] !== null ? "ready" : "waiting..."}
               </p>
             ))}
           </div>
@@ -663,10 +885,29 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
 
       {/* Shot result toast */}
       {lastShotResult && (
-        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-xl text-white font-bold text-lg z-30 shadow-lg ${
-          lastShotResult.result === "hit" ? "bg-red-700" : "bg-gray-700"
-        }`}>
-          {lastShotResult.result === "hit" ? "HIT!" : "Miss"}
+        <div style={{
+          position: "fixed",
+          bottom: "24px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          padding: "10px 24px",
+          borderRadius: "999px",
+          fontFamily: "var(--serif)",
+          fontVariant: "small-caps",
+          fontWeight: 700,
+          fontSize: "16px",
+          letterSpacing: "0.22em",
+          zIndex: 30,
+          boxShadow: "0 4px 14px rgba(0,0,0,0.6)",
+          background: lastShotResult.result === "hit"
+            ? "radial-gradient(circle at 35% 35%, #e15a44 0%, #c8372a 55%, #8b1f17 100%)"
+            : "linear-gradient(180deg, var(--bone) 0%, #c4b587 100%)",
+          color: lastShotResult.result === "hit" ? "var(--bone)" : "var(--ink)",
+          border: lastShotResult.result === "hit"
+            ? "1px solid rgba(200,55,42,0.5)"
+            : "1px solid rgba(26,22,18,0.25)",
+        }}>
+          {lastShotResult.result === "hit" ? "Hit!" : "Miss"}
         </div>
       )}
     </div>

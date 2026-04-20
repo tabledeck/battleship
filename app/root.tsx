@@ -29,6 +29,12 @@ export const meta: Route.MetaFunction = () => [
 ];
 
 export const links: Route.LinksFunction = () => [
+  { rel: "preconnect", href: "https://fonts.googleapis.com" },
+  { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+  {
+    rel: "stylesheet",
+    href: "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;700&family=Caveat:wght@500;600&display=swap",
+  },
   { rel: "stylesheet", href: styles },
   { rel: "stylesheet", href: toastStyles },
 ];
@@ -59,7 +65,7 @@ export function ErrorBoundary() {
   }
 
   return (
-    <html lang="en" className="dark bg-gray-950">
+    <html lang="en">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -67,15 +73,15 @@ export function ErrorBoundary() {
         <Meta />
         <Links />
       </head>
-      <body className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4">
+      <body className="min-h-screen bg-navy-deep font-sans text-bone flex flex-col items-center justify-center p-4">
         {statusCode && (
-          <p className="text-emerald-400 text-6xl font-bold mb-2">{statusCode}</p>
+          <p className="text-gold font-mono text-6xl font-bold mb-2">{statusCode}</p>
         )}
-        <h1 className="text-2xl font-semibold mb-3">{title}</h1>
-        <p className="text-white/60 mb-6 text-center max-w-sm">{message}</p>
+        <h1 className="text-2xl font-serif font-semibold mb-3 text-bone">{title}</h1>
+        <p className="text-bone/60 mb-6 text-center max-w-sm font-sans">{message}</p>
         <a
           href="/"
-          className="bg-emerald-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-emerald-500 transition-colors"
+          className="btn-primary"
         >
           Go Home
         </a>
@@ -95,14 +101,14 @@ export default function App({ loaderData }: Route.ComponentProps) {
   }, [toast]);
 
   return (
-    <html lang="en" className="dark bg-gray-950">
+    <html lang="en">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
       </head>
-      <body className="min-h-screen bg-gray-950 text-white">
+      <body className="min-h-screen bg-navy-deep font-sans text-bone">
         <ToastContainer />
         <Outlet />
         <ScrollRestoration />

@@ -1,8 +1,505 @@
 @import "tailwindcss";
 
-button {
-  cursor: pointer;
+/* ======================================================
+   TABLEDECK — BATTLESHIP
+   Design tokens, textures, primitives
+   ====================================================== */
+
+:root {
+  /* Materials */
+  --parchment:      #f4e9d0;
+  --parchment-edge: #c8b98f;
+  --parchment-deep: #e2d4b0;
+  --linen:          #ede4d1;
+  --bone:           #f6efe0;
+  --bone-edge:      #d2c5a3;
+  --ink:            #1a1612;
+  --ink-soft:       #3a2f25;
+  --ink-faint:      rgba(26, 22, 18, 0.55);
+
+  /* Metals */
+  --gold:           #c9a24a;
+  --gold-hi:        #e8c872;
+  --gold-lo:        #8b6a1e;
+  --copper:         #a3441e;
+  --silver:         #c6c3bc;
+
+  /* Battleship accents */
+  --navy:           #0f1d33;
+  --navy-deep:      #081525;
+  --navy-mid:       #17294b;
+  --grid-paper:     #faf3e3;
+  --grid-steel:     #17294b;
+  --peg-hit:        #c8372a;
+  --peg-hit-hi:     #e15a44;
+  --peg-miss:       #f2eadb;
+  --peg-miss-lo:    #b8ad91;
+
+  /* Type */
+  --serif:  'Cormorant Garamond', Georgia, serif;
+  --sans:   'Inter', system-ui, sans-serif;
+  --mono:   'IBM Plex Mono', ui-monospace, monospace;
+  --script: 'Caveat', cursive;
 }
-button:disabled {
+
+* { box-sizing: border-box; }
+
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+
+/* ======================================================
+   TEXTURES (copied from Skull King mockup, adapted)
+   ====================================================== */
+
+.t-paper {
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 0.22  0 0 0 0 0.18  0 0 0 0 0.13  0 0 0 0.25 0'/></filter><rect width='200' height='200' filter='url(%23n)' opacity='0.5'/></svg>");
+  background-size: 220px 220px;
+  background-blend-mode: multiply;
+}
+
+.t-felt {
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.35 0'/></filter><rect width='220' height='220' filter='url(%23n)'/></svg>");
+  background-size: 240px 240px;
+}
+
+.t-wood {
+  background-image:
+    repeating-linear-gradient(89deg, transparent 0 8px, rgba(0,0,0,0.08) 8px 10px),
+    radial-gradient(ellipse at 30% 60%, rgba(0,0,0,0.22), transparent 60%);
+}
+
+.t-linen {
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.5' numOctaves='1'/><feColorMatrix values='0 0 0 0 0.2  0 0 0 0 0.16  0 0 0 0 0.1  0 0 0 0.12 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+}
+
+/* ======================================================
+   BATTLESHIP-SPECIFIC TEXTURES & UTILITIES
+   ====================================================== */
+
+/* Cream graph paper — fleet board */
+.bg-grid-paper {
+  background-color: var(--grid-paper);
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='5'/><feColorMatrix values='0 0 0 0 0.15  0 0 0 0 0.12  0 0 0 0 0.08  0 0 0 0.12 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>"),
+    repeating-linear-gradient(rgba(15,29,51,0.12) 0 1px, transparent 1px 100%),
+    repeating-linear-gradient(90deg, rgba(15,29,51,0.12) 0 1px, transparent 1px 100%);
+  background-size: 200px 200px, 36px 36px, 36px 36px;
+  background-blend-mode: multiply, normal, normal;
+}
+
+/* Steel blue grid — attack board */
+.bg-grid-steel {
+  background-color: var(--grid-steel);
+  background-image:
+    repeating-linear-gradient(rgba(255,255,255,0.15) 0 1px, transparent 1px 100%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.15) 0 1px, transparent 1px 100%);
+  background-size: 36px 36px, 36px 36px;
+}
+
+/* Raised red bakelite peg — hit */
+.peg-hit {
+  position: absolute;
+  inset: 15%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, var(--peg-hit-hi) 0%, var(--peg-hit) 50%, #8b1f17 100%);
+  box-shadow:
+    inset 0 2px 3px rgba(255,255,255,0.35),
+    inset 0 -2px 4px rgba(0,0,0,0.45),
+    0 3px 6px rgba(0,0,0,0.55);
+  animation: peg-drop 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* White bakelite peg — miss */
+.peg-miss {
+  position: absolute;
+  inset: 15%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, var(--peg-miss) 50%, var(--peg-miss-lo) 100%);
+  box-shadow:
+    inset 0 2px 3px rgba(255,255,255,0.9),
+    inset 0 -2px 4px rgba(0,0,0,0.2),
+    0 2px 5px rgba(0,0,0,0.45);
+  animation: peg-drop 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Peg drop animation */
+@keyframes peg-drop {
+  0%   { transform: scale(0.5) translateY(-8px); opacity: 0; }
+  60%  { transform: scale(1.05) translateY(2px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* Rivet dot ornament */
+.rivet {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #2a3f5e, var(--navy-deep));
+  box-shadow:
+    inset 0 1px 1px rgba(255,255,255,0.15),
+    inset 0 -1px 1px rgba(0,0,0,0.5),
+    0 1px 2px rgba(0,0,0,0.4);
+}
+
+/* ======================================================
+   SHARED PRIMITIVES (CSS — components hook into these)
+   ====================================================== */
+
+/* Plaque — raised bone panel */
+.td-plaque {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 28px 12px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--bone) 0%, #e2d4b0 45%, #c4b587 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.7),
+    inset 0 -1px 0 rgba(0,0,0,0.18),
+    inset 0 0 0 1px rgba(26,22,18,0.22),
+    0 2px 0 rgba(0,0,0,0.5),
+    0 8px 18px rgba(0,0,0,0.55);
+  position: relative;
+}
+
+/* Ticket (raffle-chip) */
+.td-ticket {
+  position: relative;
+  background: var(--parchment);
+  color: var(--ink);
+  padding: 10px 26px;
+  box-shadow:
+    inset 0 0 0 1px rgba(26,22,18,0.15),
+    0 1px 0 rgba(255,255,255,0.12),
+    0 6px 14px rgba(0,0,0,0.5);
+  clip-path: polygon(
+    0% 18%, 4% 0%, 96% 0%, 100% 18%,
+    100% 82%, 96% 100%, 4% 100%, 0% 82%
+  );
+}
+.td-ticket::before,
+.td-ticket::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  background: var(--navy-deep);
+  border-radius: 50%;
+  transform: translateY(-50%);
+}
+.td-ticket::before { left: -5px; }
+.td-ticket::after  { right: -5px; }
+
+/* Scroll */
+.td-scroll {
+  position: relative;
+  background: var(--parchment);
+  border-radius: 4px;
+  padding: 22px 20px 20px;
+  box-shadow:
+    inset 0 0 0 1px rgba(26,22,18,0.12),
+    inset 0 0 0 6px var(--parchment),
+    inset 0 0 0 7px rgba(26,22,18,0.08),
+    0 6px 18px rgba(0,0,0,0.45);
+  color: var(--ink);
+}
+.td-scroll::before,
+.td-scroll::after {
+  content: "";
+  position: absolute;
+  left: -6px;
+  right: -6px;
+  height: 14px;
+  background:
+    radial-gradient(circle at 6px 50%, var(--parchment) 5px, transparent 5.5px) 0 0/12px 14px repeat-x,
+    var(--parchment);
+  filter: drop-shadow(0 1px 0 rgba(0,0,0,0.25));
+}
+.td-scroll::before { top: -10px; }
+.td-scroll::after  { bottom: -10px; transform: scaleY(-1); }
+
+/* Card — die-cut paper frame */
+.td-card {
+  position: relative;
+  border-radius: 9px;
+  background: var(--parchment);
+  color: var(--ink);
+  box-shadow:
+    inset 0 0 0 1px rgba(26,22,18,0.45),
+    inset 0 0 0 2px var(--parchment),
+    inset 0 0 0 3px rgba(26,22,18,0.22),
+    0 2px 0 rgba(0,0,0,0.3),
+    0 10px 20px rgba(0,0,0,0.4);
+  overflow: hidden;
+}
+
+/* Board frame — steel-tinted trim (echoes King's Cribbage walnut frame) */
+.board-frame {
+  position: relative;
+  padding: 14px;
+  border-radius: 10px;
+  background:
+    repeating-linear-gradient(88deg,
+      rgba(0,0,0,0.22) 0px,
+      rgba(0,0,0,0.22) 1px,
+      transparent 1px,
+      transparent 6px
+    ),
+    linear-gradient(180deg, #1e3a5c 0%, var(--navy-mid) 60%, var(--navy-deep) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(100,160,255,0.15),
+    inset 0 -2px 0 rgba(0,0,0,0.5),
+    0 12px 28px rgba(0,0,0,0.7);
+}
+.board-frame::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(100,160,255,0.35);
+  pointer-events: none;
+}
+
+/* Stencil chip — turn indicator */
+.stencil-chip {
+  display: inline-block;
+  padding: 8px 22px 7px;
+  background: linear-gradient(180deg, var(--gold-hi) 0%, var(--gold) 48%, var(--gold-lo) 100%);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: 12.5px;
+  letter-spacing: 0.28em;
+  border-radius: 999px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.55),
+    inset 0 -1px 0 rgba(0,0,0,0.3),
+    0 2px 4px rgba(0,0,0,0.5);
+  border: 1px solid rgba(0,0,0,0.25);
+}
+
+/* Wax seal */
+.td-seal {
+  width: 58px;
+  height: 58px;
+  background: radial-gradient(circle at 40% 40%, #3a6ea8 0%, #1a3d6e 58%, #0d2244 100%);
+  border-radius: 50%;
+  box-shadow:
+    inset 0 2px 2px rgba(255,255,255,0.25),
+    inset 0 -4px 6px rgba(0,0,0,0.45),
+    0 4px 10px rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(-8deg);
+}
+
+/* ======================================================
+   BUTTONS
+   ====================================================== */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 22px;
+  border: 1px solid var(--gold-lo);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--gold-hi) 0%, var(--gold) 48%, #a77f28 100%);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.55),
+    inset 0 -1px 0 rgba(0,0,0,0.3),
+    0 4px 10px rgba(0,0,0,0.45);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  text-decoration: none;
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.55),
+    inset 0 -1px 0 rgba(0,0,0,0.3),
+    0 6px 14px rgba(0,0,0,0.5);
+}
+.btn-primary:active {
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.3),
+    inset 0 -1px 0 rgba(0,0,0,0.2),
+    0 2px 6px rgba(0,0,0,0.4);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border: 1px solid var(--ink-soft);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--bone) 0%, #e2d4b0 100%);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.7),
+    inset 0 -1px 0 rgba(0,0,0,0.12),
+    0 2px 6px rgba(0,0,0,0.3);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  text-decoration: none;
+}
+.btn-secondary:hover {
+  transform: translateY(-1px);
+  background: linear-gradient(180deg, #fdf6e2 0%, #e8dcc4 100%);
+}
+.btn-secondary:active {
+  transform: translateY(1px);
+}
+.btn-secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: none;
+  background: transparent;
+  color: var(--parchment);
+  font-family: var(--serif);
+  font-variant: small-caps;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+  text-decoration: none;
+}
+.btn-ghost:hover { opacity: 1; text-decoration: underline dotted; }
+.btn-ghost:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ======================================================
+   DRAG PREVIEW STATES
+   ====================================================== */
+
+.drag-preview-valid {
+  box-shadow: 0 0 0 3px var(--gold), 0 0 16px rgba(201,162,74,0.5) !important;
+}
+.drag-preview-invalid {
+  box-shadow: 0 0 0 3px var(--peg-hit), 0 0 16px rgba(200,55,42,0.5) !important;
+}
+
+/* ======================================================
+   SUNK SHIP STAMP
+   ====================================================== */
+
+.sunk-stamp {
+  font-family: var(--serif);
+  font-variant: small-caps;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--peg-hit);
+  border: 1.5px solid var(--peg-hit);
+  padding: 1px 5px;
+  border-radius: 2px;
+  transform: rotate(-6deg);
+  display: inline-block;
+  opacity: 0.85;
+}
+
+/* ======================================================
+   SMALL CAPS HELPER
+   ====================================================== */
+
+.sc {
+  font-family: var(--serif);
+  font-variant: small-caps;
+  letter-spacing: 0.22em;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+
+/* ======================================================
+   GAME SURFACE (the "table")
+   ====================================================== */
+
+.game-surface {
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(100,160,255,0.04) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 100%, rgba(0,0,0,0.6) 0%, transparent 70%),
+    repeating-linear-gradient(
+      92deg,
+      #081525 0px,
+      #0f1d33 2px,
+      #0c1a2e 4px,
+      #101e34 6px
+    ),
+    #0f1d33;
+  background-blend-mode: normal, multiply, normal, normal;
+}
+
+/* Blueprint grid overlay for lobby */
+.blueprint-grid {
+  background-color: var(--navy-deep);
+  background-image:
+    repeating-linear-gradient(rgba(100,160,255,0.06) 0 1px, transparent 1px 100%),
+    repeating-linear-gradient(90deg, rgba(100,160,255,0.06) 0 1px, transparent 1px 100%);
+  background-size: 48px 48px, 48px 48px;
+}
+
+/* Input — no full border, underline only */
+.td-input {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  color: var(--bone);
+  font-family: var(--sans);
+  font-size: 15px;
+  padding: 10px 4px 8px;
+  border: none;
+  border-bottom: 1.5px solid rgba(201,162,74,0.4);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.td-input:focus {
+  border-bottom-color: var(--gold);
+}
+.td-input::placeholder {
+  color: rgba(246,239,224,0.3);
+}
+.td-input-label {
+  display: block;
+  font-family: var(--serif);
+  font-variant: small-caps;
+  font-size: 10.5px;
+  letter-spacing: 0.26em;
+  color: var(--gold-hi);
+  opacity: 0.7;
+  margin-bottom: 4px;
 }

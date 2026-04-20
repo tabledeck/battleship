@@ -61,79 +61,175 @@ export default function Profile({ loaderData }: Route.ComponentProps) {
 
   const finished = games.filter((g) => g.status === "finished").length;
 
+  const statusLabel = (s: string) => {
+    if (s === "finished") return { label: "Finished", color: "rgba(246,239,224,0.35)" };
+    if (s === "active")   return { label: "Active", color: "var(--gold)" };
+    return { label: s, color: "rgba(246,239,224,0.25)" };
+  };
+
   return (
-    <div className="min-h-screen bg-gray-950 p-4 max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <a href="/" className="text-gray-400 hover:text-white text-sm">
-          ← Home
+    <div
+      className="min-h-screen game-surface"
+      style={{ padding: "24px 16px", maxWidth: "640px", margin: "0 auto" }}
+    >
+      {/* Nav */}
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "24px" }}>
+        <a
+          href="/"
+          style={{
+            fontFamily: "var(--serif)",
+            fontVariant: "small-caps",
+            fontSize: "11px",
+            letterSpacing: "0.22em",
+            color: "rgba(246,239,224,0.4)",
+            textDecoration: "none",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--gold)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(246,239,224,0.4)")}
+        >
+          Home
         </a>
-        <a href="/logout" className="text-gray-500 hover:text-gray-300 text-sm">
+        <a
+          href="/logout"
+          style={{
+            fontFamily: "var(--serif)",
+            fontVariant: "small-caps",
+            fontSize: "11px",
+            letterSpacing: "0.18em",
+            color: "rgba(246,239,224,0.3)",
+            textDecoration: "none",
+          }}
+        >
           Logout
         </a>
       </div>
 
-      <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 mb-6">
-        <h1 className="text-white font-bold text-2xl mb-1">
-          {user.name || user.email}
-        </h1>
-        <p className="text-gray-500 text-sm">{user.email}</p>
-        <div className="flex gap-6 mt-4">
-          <div className="text-center">
-            <p className="text-white font-bold text-2xl">{finished}</p>
-            <p className="text-gray-500 text-xs">Games</p>
-          </div>
-          <div className="text-center">
-            <p className="text-emerald-400 font-bold text-2xl">{wins}</p>
-            <p className="text-gray-500 text-xs">Wins</p>
-          </div>
-          <div className="text-center">
-            <p className="text-white font-bold text-2xl">
-              {finished > 0 ? Math.round((wins / finished) * 100) : 0}%
-            </p>
-            <p className="text-gray-500 text-xs">Win rate</p>
-          </div>
+      {/* Profile plaque */}
+      <div className="td-plaque" style={{
+        flexDirection: "column",
+        alignItems: "flex-start",
+        width: "100%",
+        marginBottom: "24px",
+        position: "relative",
+      }}>
+        <div style={{ position: "absolute", top: "10px", left: "10px" }} className="rivet" />
+        <div style={{ position: "absolute", top: "10px", right: "10px" }} className="rivet" />
+
+        <h1 style={{
+          fontFamily: "var(--serif)",
+          fontWeight: 600,
+          fontSize: "24px",
+          color: "var(--ink)",
+          margin: 0,
+          marginBottom: "2px",
+        }}>{user.name || user.email}</h1>
+        <p style={{
+          fontFamily: "var(--sans)",
+          fontSize: "12px",
+          color: "var(--ink-faint)",
+        }}>{user.email}</p>
+
+        {/* Stats */}
+        <div style={{ display: "flex", gap: "28px", marginTop: "16px" }}>
+          {[
+            { val: finished, label: "Engagements" },
+            { val: wins, label: "Victories" },
+            { val: finished > 0 ? `${Math.round((wins / finished) * 100)}%` : "—", label: "Win Rate" },
+          ].map(({ val, label }) => (
+            <div key={label} style={{ textAlign: "center" }}>
+              <p style={{
+                fontFamily: "var(--mono)",
+                fontWeight: 700,
+                fontSize: "22px",
+                color: "var(--ink)",
+                margin: 0,
+                fontVariantNumeric: "tabular-nums",
+              }}>{val}</p>
+              <p style={{
+                fontFamily: "var(--serif)",
+                fontVariant: "small-caps",
+                fontSize: "9.5px",
+                letterSpacing: "0.2em",
+                color: "var(--ink-faint)",
+                marginTop: "2px",
+              }}>{label}</p>
+            </div>
+          ))}
         </div>
       </div>
 
-      <h2 className="text-white font-semibold mb-3">Recent Games</h2>
-      <div className="space-y-3">
+      {/* Recent games */}
+      <p style={{
+        fontFamily: "var(--serif)",
+        fontVariant: "small-caps",
+        letterSpacing: "0.28em",
+        fontSize: "10.5px",
+        color: "rgba(201,162,74,0.5)",
+        marginBottom: "12px",
+      }}>Fleet Log</p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         {games.length === 0 && (
-          <p className="text-gray-500 text-sm">No games yet. Create one!</p>
+          <p style={{
+            fontFamily: "var(--serif)",
+            fontStyle: "italic",
+            fontSize: "13px",
+            color: "rgba(246,239,224,0.3)",
+          }}>No engagements on record. Deploy a fleet!</p>
         )}
-        {games.map((g) => (
-          <a
-            key={g.gameId}
-            href={`/game/${g.gameId}`}
-            className="block bg-gray-900 rounded-xl p-4 border border-gray-800 hover:border-gray-600 transition-colors"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-300 font-mono text-sm">#{g.gameId}</span>
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full ${
-                  g.status === "finished"
-                    ? "bg-gray-700 text-gray-400"
-                    : g.status === "active"
-                      ? "bg-emerald-900 text-emerald-400"
-                      : "bg-yellow-900 text-yellow-400"
-                }`}
-              >
-                {g.status}
-              </span>
-            </div>
-            <div className="flex gap-3 flex-wrap">
-              {g.players
-                .sort((a, b) => b.score - a.score)
-                .map((p) => (
-                  <span
-                    key={p.seat}
-                    className={`text-sm ${p.seat === g.seat ? "text-emerald-400 font-semibold" : "text-gray-400"}`}
-                  >
-                    {p.name}: {p.score}
-                  </span>
-                ))}
-            </div>
-          </a>
-        ))}
+        {games.map((g) => {
+          const { label, color } = statusLabel(g.status);
+          return (
+            <a
+              key={g.gameId}
+              href={`/game/${g.gameId}`}
+              style={{
+                display: "block",
+                background: "rgba(15,29,51,0.7)",
+                border: "1px solid rgba(100,160,255,0.12)",
+                borderRadius: "6px",
+                padding: "12px 16px",
+                textDecoration: "none",
+                transition: "border-color 0.15s ease",
+              }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.borderColor = "rgba(201,162,74,0.3)")}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.borderColor = "rgba(100,160,255,0.12)")}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                <span style={{
+                  fontFamily: "var(--mono)",
+                  fontSize: "11px",
+                  color: "rgba(246,239,224,0.35)",
+                  letterSpacing: "0.06em",
+                }}>#{g.gameId.slice(0, 8)}</span>
+                <span style={{
+                  fontFamily: "var(--serif)",
+                  fontVariant: "small-caps",
+                  fontSize: "9.5px",
+                  letterSpacing: "0.18em",
+                  color,
+                }}>{label}</span>
+              </div>
+              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                {g.players
+                  .sort((a, b) => b.score - a.score)
+                  .map((p) => (
+                    <span
+                      key={p.seat}
+                      style={{
+                        fontFamily: "var(--serif)",
+                        fontSize: "12px",
+                        color: p.seat === g.seat ? "var(--gold-hi)" : "rgba(246,239,224,0.45)",
+                        fontWeight: p.seat === g.seat ? 600 : 400,
+                      }}
+                    >
+                      {p.name}: {p.score}
+                    </span>
+                  ))}
+              </div>
+            </a>
+          );
+        })}
       </div>
     </div>
   );

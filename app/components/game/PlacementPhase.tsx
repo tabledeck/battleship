@@ -19,6 +19,16 @@ import { ShipSvg } from "../ships/ShipSvg";
 
 const CELL_SIZE = 34;
 
+// Rotate icon SVG
+function RotateIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+      <path d="M3 3v5h5"/>
+    </svg>
+  );
+}
+
 interface PlacementPhaseProps {
   onConfirm: (ships: PlacedShip[]) => void;
   myReady: boolean;
@@ -56,8 +66,6 @@ export function PlacementPhase({ onConfirm, myReady, opponentReady }: PlacementP
 
       if (!shipType || !over || !translated) return;
 
-      // Use the visual position of the overlay relative to the droppable grid rect.
-      // This is accurate regardless of where within the draggable the user grabbed.
       const overRect = over.rect;
       const col = Math.floor((translated.left - overRect.left) / CELL_SIZE);
       const row = Math.floor((translated.top - overRect.top) / CELL_SIZE);
@@ -94,7 +102,6 @@ export function PlacementPhase({ onConfirm, myReady, opponentReady }: PlacementP
     onConfirm(fleet);
   };
 
-  // Incoming attacks are empty during placement
   const emptyAttacks: Record<string, "hit" | "miss"> = {};
 
   return (
@@ -104,16 +111,47 @@ export function PlacementPhase({ onConfirm, myReady, opponentReady }: PlacementP
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex flex-col gap-4 w-full max-w-2xl">
-        <div className="bg-gray-900 rounded-xl border border-gray-700 p-4">
-          <h2 className="text-white font-bold text-lg mb-1">Place Your Ships</h2>
-          <p className="text-gray-400 text-sm mb-4">
+      <div style={{ display: "flex", flexDirection: "column", gap: "16px", width: "100%", maxWidth: "680px" }}>
+        {/* Placement card */}
+        <div style={{
+          background: "linear-gradient(180deg, rgba(15,29,51,0.96) 0%, rgba(8,21,37,0.98) 100%)",
+          border: "1px solid rgba(100,160,255,0.18)",
+          borderRadius: "10px",
+          padding: "20px",
+          boxShadow: "inset 0 1px 0 rgba(100,160,255,0.08), 0 8px 24px rgba(0,0,0,0.5)",
+          position: "relative",
+        }}>
+          {/* Corner rivets */}
+          <div style={{ position: "absolute", top: "10px", left: "10px" }} className="rivet" />
+          <div style={{ position: "absolute", top: "10px", right: "10px" }} className="rivet" />
+
+          {/* Header */}
+          <h2 style={{
+            fontFamily: "var(--serif)",
+            fontVariant: "small-caps",
+            fontWeight: 600,
+            fontSize: "18px",
+            letterSpacing: "0.22em",
+            color: "var(--gold-hi)",
+            marginBottom: "4px",
+            marginTop: 0,
+          }}>Deploy Your Fleet</h2>
+          <p style={{
+            fontFamily: "var(--sans)",
+            fontSize: "12px",
+            color: "rgba(246,239,224,0.45)",
+            marginBottom: "18px",
+          }}>
             Drag ships onto your grid. Press R or the rotate button to change orientation.
           </p>
 
-          <div className="flex flex-wrap gap-4 items-start">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", alignItems: "flex-start" }}>
             {/* Fleet board */}
-            <div id="fleet-board-grid">
+            <div id="fleet-board-grid" className="board-frame" style={{ position: "relative" }}>
+              <div style={{ position: "absolute", top: "9px", left: "9px" }} className="rivet" />
+              <div style={{ position: "absolute", top: "9px", right: "9px" }} className="rivet" />
+              <div style={{ position: "absolute", bottom: "9px", left: "9px" }} className="rivet" />
+              <div style={{ position: "absolute", bottom: "9px", right: "9px" }} className="rivet" />
               <FleetBoard
                 fleet={fleet}
                 incomingAttacks={emptyAttacks}
@@ -124,26 +162,30 @@ export function PlacementPhase({ onConfirm, myReady, opponentReady }: PlacementP
             </div>
 
             {/* Controls */}
-            <div className="flex flex-col gap-3 flex-1 min-w-48">
-              <div className="flex gap-2">
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: 1, minWidth: "180px" }}>
+              {/* Rotate / Randomize / Clear buttons */}
+              <div style={{ display: "flex", gap: "8px" }}>
                 <button
                   onClick={() => setOrientation((o) => (o === "h" ? "v" : "h"))}
                   disabled={myReady}
-                  className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 text-white text-sm rounded-lg py-2 px-3 transition-colors"
+                  className="btn-secondary"
+                  style={{ flex: 1 }}
                 >
-                  Rotate ({orientation === "h" ? "Horizontal" : "Vertical"})
+                  <RotateIcon />
+                  {orientation === "h" ? "Horizontal" : "Vertical"}
                 </button>
                 <button
                   onClick={randomize}
                   disabled={myReady}
-                  className="bg-gray-700 hover:bg-gray-600 disabled:opacity-40 text-white text-sm rounded-lg py-2 px-3 transition-colors"
+                  className="btn-ghost"
                 >
-                  Random
+                  Randomize
                 </button>
                 <button
                   onClick={() => setFleet([])}
                   disabled={myReady || fleet.length === 0}
-                  className="bg-gray-700 hover:bg-red-900 disabled:opacity-40 text-white text-sm rounded-lg py-2 px-3 transition-colors"
+                  className="btn-ghost"
+                  style={{ color: fleet.length > 0 ? "var(--copper)" : undefined }}
                 >
                   Clear
                 </button>
@@ -154,39 +196,78 @@ export function PlacementPhase({ onConfirm, myReady, opponentReady }: PlacementP
                 <ShipTray ships={unplacedShips} orientation={orientation} />
               )}
 
-              {/* Placed ships list with remove buttons */}
+              {/* Placed ships list */}
               {fleet.length > 0 && !myReady && (
-                <div className="flex flex-col gap-1">
-                  <p className="text-gray-400 text-xs font-medium">Placed:</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <p style={{
+                    fontFamily: "var(--serif)",
+                    fontVariant: "small-caps",
+                    fontSize: "10px",
+                    letterSpacing: "0.2em",
+                    color: "var(--gold-hi)",
+                    opacity: 0.6,
+                  }}>Placed</p>
                   {fleet.map((ship) => (
-                    <div key={ship.type} className="flex items-center justify-between text-sm">
-                      <span className="text-gray-300 capitalize">{ship.type}</span>
+                    <div key={ship.type} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span style={{
+                        fontFamily: "var(--serif)",
+                        fontVariant: "small-caps",
+                        fontSize: "12px",
+                        color: "var(--bone)",
+                        opacity: 0.8,
+                        textTransform: "capitalize",
+                      }}>{ship.type}</span>
                       <button
                         onClick={() => removeShip(ship.type)}
-                        className="text-gray-500 hover:text-red-400 text-xs transition-colors"
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          fontFamily: "var(--mono)",
+                          fontSize: "10px",
+                          color: "rgba(163,68,30,0.7)",
+                          padding: "2px 4px",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--copper)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(163,68,30,0.7)")}
                       >
-                        Remove
+                        remove
                       </button>
                     </div>
                   ))}
                 </div>
               )}
 
+              {/* Confirm placement */}
               <button
                 onClick={handleConfirm}
                 disabled={!allPlaced || myReady}
-                className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-lg py-2.5 text-sm transition-colors"
+                className="btn-primary"
+                style={{ width: "100%" }}
               >
-                {myReady ? "Waiting for opponent..." : "Confirm Placement"}
+                {myReady ? "Awaiting Opponent..." : "Confirm Placement"}
               </button>
 
               {myReady && opponentReady && (
-                <p className="text-green-400 text-sm text-center font-medium">
-                  Both ready — starting game!
+                <p style={{
+                  fontFamily: "var(--serif)",
+                  fontVariant: "small-caps",
+                  fontSize: "12px",
+                  textAlign: "center",
+                  color: "var(--gold-hi)",
+                  letterSpacing: "0.16em",
+                }}>
+                  All hands ready — Battle stations!
                 </p>
               )}
               {myReady && !opponentReady && (
-                <p className="text-gray-500 text-xs text-center">
+                <p style={{
+                  fontFamily: "var(--serif)",
+                  fontStyle: "italic",
+                  fontSize: "11px",
+                  textAlign: "center",
+                  color: "rgba(246,239,224,0.35)",
+                }}>
                   Opponent is still placing ships...
                 </p>
               )}
@@ -195,7 +276,7 @@ export function PlacementPhase({ onConfirm, myReady, opponentReady }: PlacementP
         </div>
       </div>
 
-      {/* Drag overlay showing ship being dragged */}
+      {/* Drag overlay */}
       <DragOverlay>
         {draggingType && (
           <ShipSvg

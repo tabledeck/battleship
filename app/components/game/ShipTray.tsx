@@ -24,18 +24,43 @@ function DraggableShip({ shipDef, orientation }: DraggableShipProps) {
         opacity: isDragging ? 0.3 : 1,
         cursor: "grab",
         touchAction: "none",
+        padding: "8px 10px",
+        borderRadius: "6px",
+        background: "rgba(23,41,75,0.7)",
+        border: "1px solid rgba(100,160,255,0.14)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: "4px",
+        transition: "background 0.12s ease, border-color 0.12s ease",
       }}
-      className="flex flex-col items-start gap-1 p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors border border-gray-700"
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.background = "rgba(23,41,75,0.95)";
+        (e.currentTarget as HTMLElement).style.borderColor = "rgba(201,162,74,0.3)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.background = "rgba(23,41,75,0.7)";
+        (e.currentTarget as HTMLElement).style.borderColor = "rgba(100,160,255,0.14)";
+      }}
     >
-      <span className="text-gray-400 text-xs font-medium">{shipDef.label}</span>
-      <div className="flex items-center gap-1">
-        <ShipSvg
-          type={shipDef.type}
-          orientation="h"
-          cellSize={TRAY_CELL_SIZE}
-        />
-      </div>
-      <span className="text-gray-600 text-xs">{shipDef.size} cells</span>
+      <span style={{
+        fontFamily: "var(--serif)",
+        fontVariant: "small-caps",
+        fontSize: "10px",
+        letterSpacing: "0.18em",
+        color: "rgba(246,239,224,0.55)",
+      }}>{shipDef.label}</span>
+      <ShipSvg
+        type={shipDef.type}
+        orientation="h"
+        cellSize={TRAY_CELL_SIZE}
+      />
+      <span style={{
+        fontFamily: "var(--mono)",
+        fontSize: "9px",
+        color: "rgba(246,239,224,0.25)",
+        letterSpacing: "0.1em",
+      }}>{shipDef.size} decks</span>
     </div>
   );
 }
@@ -48,16 +73,32 @@ interface ShipTrayProps {
 export function ShipTray({ ships, orientation }: ShipTrayProps) {
   if (ships.length === 0) {
     return (
-      <div className="text-gray-500 text-sm p-3 text-center">
-        All ships placed!
+      <div style={{
+        fontFamily: "var(--serif)",
+        fontVariant: "small-caps",
+        fontSize: "11px",
+        letterSpacing: "0.22em",
+        color: "var(--gold)",
+        textAlign: "center",
+        padding: "12px",
+        opacity: 0.7,
+      }}>
+        All ships deployed
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-gray-400 text-xs font-medium">Ships to place:</p>
-      <div className="flex flex-wrap gap-2">
+    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      <p style={{
+        fontFamily: "var(--serif)",
+        fontVariant: "small-caps",
+        fontSize: "10px",
+        letterSpacing: "0.22em",
+        color: "var(--gold-hi)",
+        opacity: 0.6,
+      }}>Ships to deploy:</p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
         {ships.map((ship) => (
           <DraggableShip key={ship.type} shipDef={ship} orientation={orientation} />
         ))}

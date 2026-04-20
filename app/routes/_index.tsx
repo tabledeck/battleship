@@ -48,72 +48,245 @@ export default function Index({ loaderData }: Route.ComponentProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-4">
-      {/* Header */}
-      <a href="https://tabledeck.us" className="absolute top-4 left-4 text-gray-500 hover:text-gray-300 text-sm">
-        ← tabledeck.us
-      </a>
-      <div className="absolute top-4 right-4 flex gap-3">
-        {user ? (
-          <>
-            <a href="/profile" className="text-gray-300 hover:text-white text-sm">
-              {user.name || user.email}
-            </a>
-            <a href="/logout" className="text-gray-500 hover:text-gray-300 text-sm">
-              Logout
-            </a>
-          </>
-        ) : (
-          <>
-            <a href="/login" className="text-gray-300 hover:text-white text-sm">
-              Login
-            </a>
-            <a href="/signup" className="text-blue-400 hover:text-blue-300 text-sm font-medium">
-              Sign Up
-            </a>
-          </>
-        )}
+    <div
+      className="min-h-screen blueprint-grid flex flex-col items-center justify-center p-4"
+      style={{ position: "relative", overflow: "hidden" }}
+    >
+      {/* Subtle radial light */}
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        background: "radial-gradient(ellipse at 50% 40%, rgba(100,160,255,0.05) 0%, transparent 60%)",
+        pointerEvents: "none",
+      }} />
+
+      {/* Nav row */}
+      <div style={{ position: "absolute", top: "16px", left: "16px", right: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <a
+          href="https://tabledeck.us"
+          style={{
+            fontFamily: "var(--serif)",
+            fontVariant: "small-caps",
+            fontSize: "11px",
+            letterSpacing: "0.22em",
+            color: "rgba(246,239,224,0.4)",
+            textDecoration: "none",
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--gold)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(246,239,224,0.4)")}
+        >
+          Tabledeck.us
+        </a>
+        <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+          {user ? (
+            <>
+              <a
+                href="/profile"
+                style={{ fontFamily: "var(--sans)", fontSize: "13px", color: "rgba(246,239,224,0.6)", textDecoration: "none" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--bone)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(246,239,224,0.6)")}
+              >
+                {user.name || user.email}
+              </a>
+              <a
+                href="/logout"
+                style={{ fontFamily: "var(--sans)", fontSize: "13px", color: "rgba(246,239,224,0.35)", textDecoration: "none" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(246,239,224,0.6)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(246,239,224,0.35)")}
+              >
+                Logout
+              </a>
+            </>
+          ) : (
+            <>
+              <a
+                href="/login"
+                style={{ fontFamily: "var(--sans)", fontSize: "13px", color: "rgba(246,239,224,0.6)", textDecoration: "none" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--bone)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(246,239,224,0.6)")}
+              >
+                Login
+              </a>
+              <a
+                href="/signup"
+                style={{
+                  fontFamily: "var(--serif)",
+                  fontVariant: "small-caps",
+                  fontSize: "12px",
+                  letterSpacing: "0.18em",
+                  color: "var(--gold-hi)",
+                  textDecoration: "none",
+                  padding: "4px 12px",
+                  border: "1px solid rgba(201,162,74,0.35)",
+                  borderRadius: "999px",
+                }}
+              >
+                Sign Up
+              </a>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Hero */}
-      <div className="text-center mb-12">
-        <div className="text-6xl mb-4">🚢</div>
-        <h1 className="text-5xl font-bold text-white mb-3">Battleship</h1>
-        <p className="text-gray-400 text-lg max-w-md">
-          The classic naval strategy game. Place your fleet, then sink your
-          opponent's ships one shot at a time. Share a link to play with a friend.
+      <div style={{ textAlign: "center", marginBottom: "48px", position: "relative" }}>
+        {/* Stenciled BATTLESHIP wordmark */}
+        <h1 style={{
+          fontFamily: "var(--serif)",
+          fontVariant: "small-caps",
+          fontWeight: 700,
+          fontSize: "clamp(42px, 8vw, 72px)",
+          letterSpacing: "0.22em",
+          color: "var(--gold-hi)",
+          margin: 0,
+          lineHeight: 1,
+          textShadow: "0 1px 0 rgba(0,0,0,0.6), 0 0 40px rgba(201,162,74,0.18)",
+          WebkitTextStroke: "1px rgba(201,162,74,0.3)",
+        }}>
+          Battleship
+        </h1>
+
+        {/* Subtitle */}
+        <p style={{
+          fontFamily: "var(--serif)",
+          fontVariant: "small-caps",
+          fontSize: "11px",
+          letterSpacing: "0.42em",
+          color: "rgba(246,239,224,0.35)",
+          marginTop: "12px",
+          marginBottom: 0,
+        }}>
+          Naval Strategy · Two Players
         </p>
+
+        {/* Rule lines */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          marginTop: "14px",
+          justifyContent: "center",
+        }}>
+          <div style={{ width: "60px", height: "1px", background: "linear-gradient(90deg, transparent, rgba(201,162,74,0.4))" }} />
+          <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: "var(--gold)", opacity: 0.5 }} />
+          <div style={{ width: "60px", height: "1px", background: "linear-gradient(90deg, rgba(201,162,74,0.4), transparent)" }} />
+        </div>
       </div>
 
-      {/* Create Game */}
-      <div className="bg-gray-900 rounded-2xl p-8 w-full max-w-sm border border-gray-800">
-        <h2 className="text-white font-semibold text-xl mb-2">New Game</h2>
-        <p className="text-gray-500 text-sm mb-6">2 players — you and a friend</p>
+      {/* New Engagement plaque */}
+      <div className="td-plaque" style={{
+        flexDirection: "column",
+        alignItems: "stretch",
+        maxWidth: "360px",
+        width: "100%",
+        position: "relative",
+      }}>
+        {/* Rivets */}
+        <div style={{ position: "absolute", top: "10px", left: "10px" }} className="rivet" />
+        <div style={{ position: "absolute", top: "10px", right: "10px" }} className="rivet" />
+        <div style={{ position: "absolute", bottom: "10px", left: "10px" }} className="rivet" />
+        <div style={{ position: "absolute", bottom: "10px", right: "10px" }} className="rivet" />
+
+        <div style={{ textAlign: "center", marginBottom: "4px" }}>
+          <h2 style={{
+            fontFamily: "var(--serif)",
+            fontVariant: "small-caps",
+            fontWeight: 600,
+            fontSize: "18px",
+            letterSpacing: "0.2em",
+            color: "var(--ink)",
+            margin: 0,
+          }}>New Engagement</h2>
+          <p style={{
+            fontFamily: "var(--sans)",
+            fontSize: "12px",
+            color: "var(--ink-soft)",
+            marginTop: "6px",
+            marginBottom: "18px",
+          }}>2 players · share a link · no download</p>
+        </div>
 
         <button
           onClick={createGame}
           disabled={creating}
-          className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold rounded-xl py-3 text-lg transition-colors"
+          className="btn-primary"
+          style={{ width: "100%" }}
         >
-          {creating ? "Creating..." : "Create Game"}
+          {creating ? "Preparing Fleet..." : "New Engagement"}
         </button>
 
-        <p className="text-gray-500 text-xs text-center mt-4">
-          You'll get a shareable link to send to your friend
+        <p style={{
+          fontFamily: "var(--serif)",
+          fontStyle: "italic",
+          fontSize: "11px",
+          textAlign: "center",
+          color: "var(--ink-faint)",
+          marginTop: "12px",
+        }}>
+          You'll receive a shareable link to send to your opponent
         </p>
       </div>
 
       {/* How to play */}
-      <div className="mt-10 text-center max-w-sm">
-        <h3 className="text-gray-400 font-medium mb-3">How to play</h3>
-        <ol className="text-gray-500 text-sm space-y-1 text-left">
-          <li>1. Create a game and share the link</li>
-          <li>2. Both players guess a number 1–10 — closest goes first</li>
-          <li>3. Place your 5 ships on the grid</li>
-          <li>4. Take turns firing shots at each other's grid</li>
-          <li>5. First to sink all opponent ships wins!</li>
+      <div style={{
+        marginTop: "48px",
+        maxWidth: "420px",
+        width: "100%",
+      }}>
+        <p style={{
+          fontFamily: "var(--serif)",
+          fontVariant: "small-caps",
+          letterSpacing: "0.28em",
+          fontSize: "10.5px",
+          color: "rgba(201,162,74,0.5)",
+          textAlign: "center",
+          marginBottom: "16px",
+        }}>Standing Orders</p>
+
+        <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
+          {[
+            "Create a game and share the link with your opponent",
+            "Both players guess a number 1–10 — closest goes first",
+            "Place your 5 ships on the grid",
+            "Take turns firing shots at each other's fleet",
+            "First to sink all opponent ships wins",
+          ].map((step, i) => (
+            <li key={i} style={{
+              display: "flex",
+              gap: "12px",
+              alignItems: "baseline",
+              padding: "7px 0",
+              borderBottom: i < 4 ? "1px dashed rgba(201,162,74,0.12)" : "none",
+            }}>
+              <span style={{
+                fontFamily: "var(--mono)",
+                fontSize: "11px",
+                color: "var(--gold)",
+                opacity: 0.55,
+                flexShrink: 0,
+                minWidth: "18px",
+              }}>{i + 1}.</span>
+              <span style={{
+                fontFamily: "var(--sans)",
+                fontSize: "12px",
+                color: "rgba(246,239,224,0.45)",
+                lineHeight: 1.5,
+              }}>{step}</span>
+            </li>
+          ))}
         </ol>
       </div>
+
+      {/* Footer mark */}
+      <p style={{
+        position: "absolute",
+        bottom: "16px",
+        fontFamily: "var(--serif)",
+        fontVariant: "small-caps",
+        fontSize: "10px",
+        letterSpacing: "0.28em",
+        color: "rgba(201,162,74,0.18)",
+      }}>Tabledeck</p>
     </div>
   );
 }

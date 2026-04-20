@@ -39,53 +39,124 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-4">
-      <h1 className="text-3xl font-bold text-white mb-2">Battleship</h1>
-      <p className="text-gray-400 mb-8">Create an account to save your games</p>
-      <form
-        onSubmit={handleSignup}
-        className="flex flex-col gap-4 w-full max-w-sm"
-      >
-        <input
-          type="text"
-          placeholder="Display name"
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="bg-gray-800 text-white rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="bg-gray-800 text-white rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
-        />
-        <input
-          type="password"
-          placeholder="Password (min 8 chars)"
-          required
-          minLength={8}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="bg-gray-800 text-white rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
-        />
-        {error && <p className="text-red-400 text-sm text-center">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold rounded-lg px-4 py-3 transition-colors"
-        >
-          {loading ? "Creating account..." : "Create Account"}
-        </button>
-        <p className="text-gray-400 text-sm text-center">
-          Already have an account?{" "}
-          <a href="/login" className="text-emerald-400 hover:underline">
-            Sign in
-          </a>
-        </p>
-      </form>
+    <div
+      className="min-h-screen blueprint-grid flex flex-col items-center justify-center p-4"
+      style={{ position: "relative" }}
+    >
+      {/* Radial glow */}
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        background: "radial-gradient(ellipse at 50% 40%, rgba(100,160,255,0.04) 0%, transparent 60%)",
+        pointerEvents: "none",
+      }} />
+
+      {/* Wordmark */}
+      <div style={{ textAlign: "center", marginBottom: "36px" }}>
+        <a href="/" style={{ textDecoration: "none" }}>
+          <h1 style={{
+            fontFamily: "var(--serif)",
+            fontVariant: "small-caps",
+            fontWeight: 700,
+            fontSize: "36px",
+            letterSpacing: "0.22em",
+            color: "var(--gold-hi)",
+            margin: 0,
+            textShadow: "0 1px 0 rgba(0,0,0,0.5)",
+          }}>Battleship</h1>
+        </a>
+        <p style={{
+          fontFamily: "var(--serif)",
+          fontStyle: "italic",
+          fontSize: "13px",
+          color: "rgba(246,239,224,0.35)",
+          marginTop: "6px",
+        }}>Create an account to save your games</p>
+      </div>
+
+      {/* Signup form plaque */}
+      <div className="td-plaque" style={{
+        flexDirection: "column",
+        alignItems: "stretch",
+        maxWidth: "360px",
+        width: "100%",
+        position: "relative",
+      }}>
+        {/* Rivets */}
+        <div style={{ position: "absolute", top: "10px", left: "10px" }} className="rivet" />
+        <div style={{ position: "absolute", top: "10px", right: "10px" }} className="rivet" />
+
+        <form onSubmit={handleSignup} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+          <div>
+            <label className="td-input-label">Display Name</label>
+            <input
+              type="text"
+              placeholder="Captain Ahab"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="td-input"
+              style={{ color: "var(--ink)" }}
+            />
+          </div>
+          <div>
+            <label className="td-input-label">Email</label>
+            <input
+              type="email"
+              placeholder="fleet@example.com"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="td-input"
+              style={{ color: "var(--ink)" }}
+            />
+          </div>
+          <div>
+            <label className="td-input-label">Password</label>
+            <input
+              type="password"
+              placeholder="Min. 8 characters"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="td-input"
+              style={{ color: "var(--ink)" }}
+            />
+          </div>
+
+          {error && (
+            <p style={{
+              fontFamily: "var(--sans)",
+              fontSize: "12px",
+              color: "var(--copper)",
+              textAlign: "center",
+            }}>{error}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary"
+            style={{ width: "100%", marginTop: "4px" }}
+          >
+            {loading ? "Creating account..." : "Create Account"}
+          </button>
+
+          <p style={{
+            fontFamily: "var(--serif)",
+            fontStyle: "italic",
+            fontSize: "12px",
+            textAlign: "center",
+            color: "var(--ink-soft)",
+          }}>
+            Already have an account?{" "}
+            <a href="/login" style={{ color: "var(--ink)", fontWeight: 600, textDecoration: "underline" }}>
+              Sign in
+            </a>
+          </p>
+        </form>
+      </div>
     </div>
   );
 }

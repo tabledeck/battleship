@@ -103,26 +103,31 @@ export class BattleshipRoomDO extends BaseGameRoomDO<GameState, GameSettings, En
     const msg = result.data;
     const state = this.gameState;
 
-    switch (msg.type) {
-      case "guess_number":
-        await this.handleGuess(ws, seat, msg.number, state);
-        break;
+    try {
+      switch (msg.type) {
+        case "guess_number":
+          await this.handleGuess(ws, seat, msg.number, state);
+          break;
 
-      case "place_ships":
-        await this.handlePlaceShips(ws, seat, msg.ships as Omit<PlacedShip, "hits">[], state);
-        break;
+        case "place_ships":
+          await this.handlePlaceShips(ws, seat, msg.ships as Omit<PlacedShip, "hits">[], state);
+          break;
 
-      case "fire_shot":
-        await this.handleFireShot(ws, seat, msg.row, msg.col, state);
-        break;
+        case "fire_shot":
+          await this.handleFireShot(ws, seat, msg.row, msg.col, state);
+          break;
 
-      case "chat":
-        this.broadcast(JSON.stringify({ type: "chat_broadcast", seat, text: msg.text }));
-        break;
+        case "chat":
+          this.broadcast(JSON.stringify({ type: "chat_broadcast", seat, text: msg.text }));
+          break;
 
-      case "ping":
-        ws.send(JSON.stringify({ type: "pong" }));
-        break;
+        case "ping":
+          ws.send(JSON.stringify({ type: "pong" }));
+          break;
+      }
+    } catch (err) {
+      console.error("[battleship] Unexpected error in game message handler:", err);
+      ws.send(JSON.stringify({ type: "error", message: "Unexpected server error" }));
     }
   }
 
@@ -320,8 +325,8 @@ export class BattleshipRoomDO extends BaseGameRoomDO<GameState, GameSettings, En
           .bind(this.gameId)
           .run();
       }
-    } catch {
-      // Non-fatal — DO is authoritative
+    } catch (err) {
+      console.error("[battleship] D1 sync failed:", err);
     }
   }
 }

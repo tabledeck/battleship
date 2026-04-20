@@ -5,63 +5,53 @@ interface BoardCellProps {
   onClick?: (row: number, col: number) => void;
   clickable?: boolean;
   cellSize?: number;
+  boardType?: "fleet" | "attack";
 }
 
-export function BoardCell({ row, col, state, onClick, clickable = false, cellSize = 36 }: BoardCellProps) {
-  const baseStyle: React.CSSProperties = {
-    width: cellSize,
-    height: cellSize,
-    border: "1px solid rgba(255,255,255,0.08)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: clickable ? "pointer" : "default",
-    position: "relative",
-    boxSizing: "border-box",
-    flexShrink: 0,
-  };
+export function BoardCell({
+  row,
+  col,
+  state,
+  onClick,
+  clickable = false,
+  cellSize = 36,
+  boardType = "attack",
+}: BoardCellProps) {
+  // Determine background class based on board type and state
+  let bgClass = boardType === "fleet" ? "bg-grid-paper" : "bg-grid-steel";
 
-  let bgColor = "rgba(14, 40, 80, 0.6)"; // deep navy empty
-  let marker: React.ReactNode = null;
-
-  switch (state) {
-    case "ship":
-      bgColor = "rgba(30, 60, 120, 0.4)";
-      break;
-    case "hit":
-      bgColor = "rgba(185, 28, 28, 0.35)";
-      marker = (
-        <svg width={cellSize * 0.55} height={cellSize * 0.55} viewBox="0 0 20 20">
-          <line x1="3" y1="3" x2="17" y2="17" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" />
-          <line x1="17" y1="3" x2="3" y2="17" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" />
-        </svg>
-      );
-      break;
-    case "miss":
-      bgColor = "rgba(14, 40, 80, 0.6)";
-      marker = (
-        <svg width={cellSize * 0.45} height={cellSize * 0.45} viewBox="0 0 20 20">
-          <circle cx="10" cy="10" r="7" fill="none" stroke="#94a3b8" strokeWidth="2.5" />
-        </svg>
-      );
-      break;
-    case "preview-valid":
-      bgColor = "rgba(37, 99, 235, 0.4)";
-      break;
-    case "preview-invalid":
-      bgColor = "rgba(185, 28, 28, 0.4)";
-      break;
-    default:
-      break;
+  if (state === "ship") {
+    bgClass = "bg-grid-paper"; // ships are always on fleet board
+  } else if (state === "preview-valid") {
+    bgClass = "bg-grid-paper";
+  } else if (state === "preview-invalid") {
+    bgClass = "bg-grid-paper";
   }
+
+  // Border class varies by board type
+  const borderClass = boardType === "fleet"
+    ? "border border-navy/10"
+    : "border border-white/10";
+
+  // Extra styling for preview states
+  const previewClass = state === "preview-valid"
+    ? "drag-preview-valid"
+    : state === "preview-invalid"
+    ? "drag-preview-invalid"
+    : "";
+
+  const hoverClass = clickable
+    ? "hover:brightness-125 transition-all duration-100 cursor-pointer"
+    : "cursor-default";
 
   return (
     <div
-      style={{ ...baseStyle, backgroundColor: bgColor }}
+      style={{ width: cellSize, height: cellSize, flexShrink: 0 }}
+      className={`${bgClass} ${borderClass} ${previewClass} ${hoverClass} flex items-center justify-center relative box-border`}
       onClick={clickable && onClick ? () => onClick(row, col) : undefined}
-      className={clickable ? "hover:brightness-150 transition-all" : ""}
     >
-      {marker}
+      {state === "hit" && <div className="peg-hit" />}
+      {state === "miss" && <div className="peg-miss" />}
     </div>
   );
 }
