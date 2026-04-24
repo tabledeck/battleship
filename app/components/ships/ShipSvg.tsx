@@ -6,6 +6,7 @@ interface ShipSvgProps {
   orientation: Orientation;
   cellSize: number;
   sunk?: boolean;
+  hitCount?: number;
   className?: string;
 }
 
@@ -27,7 +28,7 @@ const SHIP_COLORS = {
   },
 };
 
-export function ShipSvg({ type, orientation, cellSize, sunk = false, className }: ShipSvgProps) {
+export function ShipSvg({ type, orientation, cellSize, sunk = false, hitCount = 0, className }: ShipSvgProps) {
   const size = getShipSize(type);
   const isH = orientation === "h";
 
@@ -41,21 +42,21 @@ export function ShipSvg({ type, orientation, cellSize, sunk = false, className }
 
   const colors = sunk ? SHIP_COLORS.sunk : SHIP_COLORS.live;
 
-  // Portholes
-  const numPortholes = Math.max(1, size - 1);
+  // Hit indicators — one gold "damage" dot per hit, centered in each hit cell.
+  const numHitDots = Math.max(0, Math.min(size, hitCount));
   const portholeRadius = cellSize * 0.1;
 
   const portholes: { x: number; y: number }[] = [];
-  for (let i = 0; i < numPortholes; i++) {
+  for (let i = 0; i < numHitDots; i++) {
     if (isH) {
       portholes.push({
-        x: margin + cellSize * (i + 0.6),
+        x: margin + cellSize * (i + 0.5),
         y: totalH / 2,
       });
     } else {
       portholes.push({
         x: totalW / 2,
-        y: margin + cellSize * (i + 0.6),
+        y: margin + cellSize * (i + 0.5),
       });
     }
   }
@@ -158,19 +159,8 @@ export function ShipSvg({ type, orientation, cellSize, sunk = false, className }
           opacity={0.7}
         />
       ))}
-      {/* Submarine conning tower */}
-      {type === "submarine" && (
-        <rect
-          x={isH ? margin + cellSize * 0.3 : margin + bodyW * 0.3}
-          y={isH ? margin : margin + bodyH * 0.05}
-          width={isH ? cellSize * 0.35 : bodyW * 0.4}
-          height={isH ? bodyH * 0.5 : cellSize * 0.35}
-          rx={rivetRadius * 2}
-          fill={colors.body}
-          stroke={colors.stroke}
-          strokeWidth={0.8}
-        />
-      )}
+      {/* (Submarine conning tower removed — it rendered as a stray blue dot
+           at the top-left of the first cell rather than a centered tower.) */}
       {/* Sunk: red diagonal strike */}
       {sunk && (
         <>

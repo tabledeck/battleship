@@ -72,7 +72,7 @@ export function AttackBoard({
             textAlign: "center",
             fontFamily: "var(--mono)",
             fontSize: "9px",
-            color: "rgba(255,255,255,0.25)",
+            color: "rgba(200,215,235,0.5)",
             lineHeight: 1,
           }}>{l}</div>
         ))}
@@ -90,7 +90,7 @@ export function AttackBoard({
               justifyContent: "flex-end",
               fontFamily: "var(--mono)",
               fontSize: "9px",
-              color: "rgba(255,255,255,0.25)",
+              color: "rgba(200,215,235,0.5)",
               paddingRight: "3px",
             }}>{row + 1}</div>
           ))}
@@ -146,6 +146,7 @@ export function AttackBoard({
                   orientation={ship.orientation}
                   cellSize={CELL_SIZE}
                   sunk
+                  hitCount={ship.hits.length}
                 />
               </div>
             );

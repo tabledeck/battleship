@@ -83,7 +83,7 @@ export function FleetBoard({
             textAlign: "center",
             fontFamily: "var(--mono)",
             fontSize: "9px",
-            color: "rgba(15,29,51,0.5)",
+            color: "rgba(200,215,235,0.55)",
             lineHeight: 1,
           }}>{l}</div>
         ))}
@@ -101,7 +101,7 @@ export function FleetBoard({
               justifyContent: "flex-end",
               fontFamily: "var(--mono)",
               fontSize: "9px",
-              color: "rgba(15,29,51,0.5)",
+              color: "rgba(200,215,235,0.55)",
               paddingRight: "3px",
             }}>{row + 1}</div>
           ))}
@@ -157,6 +157,7 @@ export function FleetBoard({
                   orientation={ship.orientation}
                   cellSize={CELL_SIZE}
                   sunk={isSunk}
+                  hitCount={ship.hits.length}
                 />
               </div>
             );

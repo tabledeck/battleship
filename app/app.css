@@ -536,15 +536,24 @@ button:disabled { cursor: not-allowed; }
  */
 @media (max-width: 639px) {
   .bs-boards-wrap {
-    overflow-x: visible;
+    /* Clip the unscaled 760px layout box so the page doesn't gain a
+       horizontal scrollbar from content that is visually scaled down. */
+    overflow-x: hidden;
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: 0;
   }
   .bs-boards-scale {
-    transform-origin: top center;
-    /* scale so 720px of boards fits into the viewport */
+    /* Scale down from top-left so the 760px natural width collapses to
+       fit the viewport without drifting off either edge. */
+    transform-origin: top left;
     transform: scale(calc(min(100vw, 640px) / 760));
     width: 760px; /* natural content width */
-    margin-left: auto;
-    margin-right: auto;
+    margin-left: 0;
+    margin-right: 0;
+    /* Reserve visual height (unscaled height × scale) so following
+       content doesn't overlap the scaled block. */
+    height: auto;
   }
 }
 

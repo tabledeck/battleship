@@ -44,14 +44,18 @@ export function BoardCell({
     ? "hover:brightness-125 transition-all duration-100 cursor-pointer"
     : "cursor-default";
 
+  // Ship SVG overlays sit at zIndex: 2; pegs must sit above so hits on the
+  // player's own board remain visible through the ship graphic.
+  const pegStyle = { zIndex: 4 } as const;
+
   return (
     <div
       style={{ width: cellSize, height: cellSize, flexShrink: 0 }}
       className={`${bgClass} ${borderClass} ${previewClass} ${hoverClass} flex items-center justify-center relative box-border`}
       onClick={clickable && onClick ? () => onClick(row, col) : undefined}
     >
-      {state === "hit" && <div className="peg-hit" />}
-      {state === "miss" && <div className="peg-miss" />}
+      {state === "hit" && <div className="peg-hit" style={pegStyle} />}
+      {state === "miss" && <div className="peg-miss" style={pegStyle} />}
     </div>
   );
 }
