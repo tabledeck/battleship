@@ -261,6 +261,8 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
 
   // UI state
   const [copied, setCopied] = useState(false);
+  const [creatingRematch, setCreatingRematch] = useState(false);
+  const [rematchError, setRematchError] = useState("");
   const [chatMessages, setChatMessages] = useState<
     Array<{ seat: number; text: string; playerName: string; timestamp: number }>
   >([]);
@@ -445,6 +447,32 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleRematch = async () => {
+    if (creatingRematch) return;
+    setCreatingRematch(true);
+    setRematchError("");
+
+    try {
+      const response = await fetch("/api/game", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rematchOf: gameId }),
+      });
+      const body = (await response.json()) as { gameId?: string; error?: string };
+
+      if (!response.ok || !body.gameId) {
+        setRematchError(body.error ?? "Failed to create rematch.");
+        setCreatingRematch(false);
+        return;
+      }
+
+      window.location.href = `/game/${body.gameId}`;
+    } catch {
+      setRematchError("Network error. Please try again.");
+      setCreatingRematch(false);
+    }
+  };
+
   const handleGuessNumber = (n: number) => {
     if (myGuess !== null || gameState.status !== "guessing") return;
     setMyGuess(n);
@@ -603,9 +631,24 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
             }}>
               {winnerPlayer?.name ?? "Someone"} sunk all the ships.
             </p>
-            <a href="/" className="btn-primary" style={{ display: "inline-flex" }}>
-              New Engagement
-            </a>
+            {rematchError && (
+              <p style={{ fontFamily: "var(--sans)", fontSize: "12px", color: "var(--copper)", marginBottom: "12px" }}>
+                {rematchError}
+              </p>
+            )}
+            <div style={{ display: "flex", justifyContent: "center", gap: "10px", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={handleRematch}
+                disabled={creatingRematch}
+                className="btn-primary"
+              >
+                {creatingRematch ? "Launching..." : "Rematch"}
+              </button>
+              <a href="/" className="btn-ghost" style={{ display: "inline-flex", alignItems: "center" }}>
+                New Engagement
+              </a>
+            </div>
           </div>
         </div>
       )}
