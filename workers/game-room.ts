@@ -16,6 +16,7 @@ import {
   deserializeGameState,
 } from "../app/domain/game-logic";
 import { ClientMessage } from "../app/domain/messages";
+import { syncGameStatusToD1 } from "./status-sync";
 
 export class BattleshipRoomDO extends BaseGameRoomDO<GameState, GameSettings, Env> {
   // ── Abstract implementations ─────────────────────────────────────────────
@@ -84,6 +85,9 @@ export class BattleshipRoomDO extends BaseGameRoomDO<GameState, GameSettings, En
     state.guessTarget = Math.floor(Math.random() * 10) + 1;
     await this.persistState();
     this.broadcastPublicState(state);
+    // Both seats are filled and the match has begun. D1 "active" is what
+    // weekly stats count as a started game — not the later shooting phase.
+    await this.syncStatusToDB();
   }
 
   protected async onGameMessage(
@@ -121,6 +125,18 @@ export class BattleshipRoomDO extends BaseGameRoomDO<GameState, GameSettings, En
           this.broadcast(JSON.stringify({ type: "chat_broadcast", seat, text: msg.text }));
           break;
 
+        case "forfeit":
+          await this.handleForfeit(seat, state);
+          break;
+
+        case "rematch_invite":
+          this.broadcast(JSON.stringify({
+            type: "rematch_offered",
+            gameId: msg.gameId,
+            fromSeat: seat,
+          }));
+          break;
+
         case "ping":
           ws.send(JSON.stringify({ type: "pong" }));
           break;
@@ -140,9 +156,8 @@ export class BattleshipRoomDO extends BaseGameRoomDO<GameState, GameSettings, En
     state.guesses[seat] = number;
     this.broadcastPublicState(state);
 
-    const allGuessed = state.players
-      .filter(Boolean)
-      .every((_, i) => state.guesses[i] != null);
+    const seated = state.players.filter((p): p is NonNullable<typeof p> => p != null);
+    const allGuessed = seated.length >= 2 && seated.every((p) => state.guesses[p.seat] != null);
 
     if (!allGuessed) {
       await this.persistState();
@@ -219,6 +234,7 @@ export class BattleshipRoomDO extends BaseGameRoomDO<GameState, GameSettings, En
     if (allReady) {
       state.status = "active";
       await this.persistState();
+      await this.syncStatusToDB();
       this.broadcast(JSON.stringify({
         type: "all_placed",
         state: publicGameState(state),
@@ -289,9 +305,10 @@ export class BattleshipRoomDO extends BaseGameRoomDO<GameState, GameSettings, En
     if (opponent.shipsRemaining === 0) {
       state.status = "finished";
       state.winner = seat;
+      state.endReason = "ships_sunk";
+      state.forfeitedBy = null;
       shotResult.gameOver = true;
       shotResult.winner = seat;
-      // Sync D1 on game end
       await this.syncStatusToDB();
     } else {
       state.currentTurn = opponentSeat;
@@ -309,22 +326,37 @@ export class BattleshipRoomDO extends BaseGameRoomDO<GameState, GameSettings, En
     this.broadcast(JSON.stringify({ type: "game_state", state: publicGameState(state) }));
   }
 
+  private async handleForfeit(seat: number, state: GameState) {
+    if (state.status === "waiting" || state.status === "finished") return;
+    const player = state.players[seat];
+    if (!player) return;
+    const opponentSeat = seat === 0 ? 1 : 0;
+    if (!state.players[opponentSeat]) return;
+
+    state.status = "finished";
+    state.winner = opponentSeat;
+    state.endReason = "forfeit";
+    state.forfeitedBy = seat;
+    await this.persistState();
+    await this.syncStatusToDB();
+    this.broadcast(JSON.stringify({
+      type: "game_over",
+      winner: opponentSeat,
+      reason: "forfeit",
+      forfeitedBy: seat,
+    }));
+    this.broadcastPublicState(state);
+  }
+
   private async syncStatusToDB() {
     if (!this.gameId || !this.gameState) return;
     try {
-      const db = this.env.D1_DATABASE;
-      const { status } = this.gameState;
-      if (status === "active") {
-        await db
-          .prepare(`UPDATE Game SET status = 'active' WHERE id = ? AND status = 'waiting'`)
-          .bind(this.gameId)
-          .run();
-      } else if (status === "finished") {
-        await db
-          .prepare(`UPDATE Game SET status = 'finished', finishedAt = datetime('now') WHERE id = ?`)
-          .bind(this.gameId)
-          .run();
-      }
+      await syncGameStatusToD1(
+        this.env.D1_DATABASE,
+        this.gameId,
+        this.gameState.status,
+        this.gameState.winner,
+      );
     } catch (err) {
       console.error("[battleship] D1 sync failed:", err);
     }

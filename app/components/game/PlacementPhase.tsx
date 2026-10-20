@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -16,8 +16,7 @@ import { BOARD_SIZE, posKey, getShipCells, isInBounds, shipsOverlap, randomFleet
 import { FleetBoard } from "../board/FleetBoard";
 import { ShipTray } from "./ShipTray";
 import { ShipSvg } from "../ships/ShipSvg";
-
-const CELL_SIZE = 34;
+import { useCellSize } from "~/hooks/useCellSize";
 
 // Rotate icon SVG
 function RotateIcon() {
@@ -40,11 +39,26 @@ export function PlacementPhase({ onConfirm, myReady, opponentReady }: PlacementP
   const [orientation, setOrientation] = useState<Orientation>("h");
   const [draggingType, setDraggingType] = useState<ShipType | null>(null);
   const [previewShip, setPreviewShip] = useState<PlacedShip | null>(null);
+  const [selected, setSelected] = useState<ShipType | null>(SHIPS[0].type);
+  const [placeError, setPlaceError] = useState("");
+  const cellSize = useCellSize();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
   );
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "r" || e.key === "R") {
+        setOrientation((o) => (o === "h" ? "v" : "h"));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const placedTypes = new Set(fleet.map((s) => s.type));
   const unplacedShips = SHIPS.filter((s) => !placedTypes.has(s.type));
@@ -67,8 +81,8 @@ export function PlacementPhase({ onConfirm, myReady, opponentReady }: PlacementP
       if (!shipType || !over || !translated) return;
 
       const overRect = over.rect;
-      const col = Math.floor((translated.left - overRect.left) / CELL_SIZE);
-      const row = Math.floor((translated.top - overRect.top) / CELL_SIZE);
+      const col = Math.floor((translated.left - overRect.left) / cellSize);
+      const row = Math.floor((translated.top - overRect.top) / cellSize);
 
       if (col < 0 || col >= BOARD_SIZE || row < 0 || row >= BOARD_SIZE) return;
 
@@ -86,8 +100,30 @@ export function PlacementPhase({ onConfirm, myReady, opponentReady }: PlacementP
 
       setFleet([...existingWithoutThisType, ship]);
     },
-    [fleet, orientation],
+    [fleet, orientation, cellSize],
   );
+
+  const placeAt = (row: number, col: number) => {
+    if (myReady || !selected) {
+      setPlaceError(selected ? "" : "Choose a ship first.");
+      return;
+    }
+    const ship: PlacedShip = { type: selected, origin: { row, col }, orientation, hits: [] };
+    if (!isInBounds(ship)) {
+      setPlaceError("That ship doesn't fit there. Try rotating it.");
+      return;
+    }
+    const rest = fleet.filter((s) => s.type !== selected);
+    if (shipsOverlap([...rest, ship])) {
+      setPlaceError("Ships can't overlap.");
+      return;
+    }
+    const nextFleet = [...rest, ship];
+    setFleet(nextFleet);
+    setPlaceError("");
+    const next = SHIPS.find((s) => !nextFleet.some((p) => p.type === s.type));
+    setSelected(next?.type ?? null);
+  };
 
   const removeShip = (type: ShipType) => {
     setFleet((prev) => prev.filter((s) => s.type !== type));
@@ -95,6 +131,8 @@ export function PlacementPhase({ onConfirm, myReady, opponentReady }: PlacementP
 
   const randomize = () => {
     setFleet(randomFleet());
+    setSelected(null);
+    setPlaceError("");
   };
 
   const handleConfirm = () => {
@@ -111,16 +149,9 @@ export function PlacementPhase({ onConfirm, myReady, opponentReady }: PlacementP
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "16px", width: "100%", maxWidth: "680px" }}>
+      <div className="bs-placement" style={{ display: "flex", flexDirection: "column", gap: "16px", width: "100%" }}>
         {/* Placement card */}
-        <div style={{
-          background: "linear-gradient(180deg, rgba(15,29,51,0.96) 0%, rgba(8,21,37,0.98) 100%)",
-          border: "1px solid rgba(100,160,255,0.18)",
-          borderRadius: "10px",
-          padding: "20px",
-          boxShadow: "inset 0 1px 0 rgba(100,160,255,0.08), 0 8px 24px rgba(0,0,0,0.5)",
-          position: "relative",
-        }}>
+        <div className="bs-place-card">
           {/* Corner rivets */}
           <div style={{ position: "absolute", top: "10px", left: "10px" }} className="rivet" />
           <div style={{ position: "absolute", top: "10px", right: "10px" }} className="rivet" />
@@ -138,11 +169,12 @@ export function PlacementPhase({ onConfirm, myReady, opponentReady }: PlacementP
           }}>Deploy Your Fleet</h2>
           <p style={{
             fontFamily: "var(--sans)",
-            fontSize: "12px",
-            color: "rgba(246,239,224,0.45)",
+            fontSize: "13px",
+            lineHeight: 1.45,
+            color: "rgba(246,239,224,0.78)",
             marginBottom: "18px",
           }}>
-            Drag ships onto your grid. Press R or the rotate button to change orientation.
+            Tap a ship, then tap the grid. Rotate turns it. On a keyboard, press R. Or randomize a legal fleet.
           </p>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", alignItems: "flex-start" }}>
@@ -157,19 +189,21 @@ export function PlacementPhase({ onConfirm, myReady, opponentReady }: PlacementP
                 incomingAttacks={emptyAttacks}
                 droppable={!myReady}
                 previewShip={previewShip}
-                label="Your Grid"
+                label="Your grid"
+                cellSize={cellSize}
+                onCellClick={myReady ? undefined : placeAt}
               />
             </div>
 
             {/* Controls */}
             <div style={{ display: "flex", flexDirection: "column", gap: "12px", flex: 1, minWidth: "180px" }}>
               {/* Rotate / Randomize / Clear buttons */}
-              <div style={{ display: "flex", gap: "8px" }}>
+              <div className="bs-place-actions">
                 <button
                   onClick={() => setOrientation((o) => (o === "h" ? "v" : "h"))}
                   disabled={myReady}
                   className="btn-secondary"
-                  style={{ flex: 1 }}
+                  type="button"
                 >
                   <RotateIcon />
                   {orientation === "h" ? "Horizontal" : "Vertical"}
@@ -177,15 +211,17 @@ export function PlacementPhase({ onConfirm, myReady, opponentReady }: PlacementP
                 <button
                   onClick={randomize}
                   disabled={myReady}
-                  className="btn-ghost"
+                  className="btn-secondary"
+                  type="button"
+                  data-testid="randomize"
                 >
                   Randomize
                 </button>
                 <button
-                  onClick={() => setFleet([])}
+                  onClick={() => { setFleet([]); setSelected(SHIPS[0].type); setPlaceError(""); }}
                   disabled={myReady || fleet.length === 0}
-                  className="btn-ghost"
-                  style={{ color: fleet.length > 0 ? "var(--copper)" : undefined }}
+                  className="btn-secondary"
+                  type="button"
                 >
                   Clear
                 </button>
@@ -193,7 +229,12 @@ export function PlacementPhase({ onConfirm, myReady, opponentReady }: PlacementP
 
               {/* Ship tray */}
               {!myReady && (
-                <ShipTray ships={unplacedShips} orientation={orientation} />
+                <ShipTray
+                  ships={unplacedShips}
+                  orientation={orientation}
+                  selected={selected}
+                  onSelect={(type) => { setSelected(type); setPlaceError(""); }}
+                />
               )}
 
               {/* Placed ships list */}
@@ -224,9 +265,10 @@ export function PlacementPhase({ onConfirm, myReady, opponentReady }: PlacementP
                           border: "none",
                           cursor: "pointer",
                           fontFamily: "var(--mono)",
-                          fontSize: "10px",
-                          color: "rgba(163,68,30,0.7)",
-                          padding: "2px 4px",
+                          fontSize: "12px",
+                          color: "rgba(246,180,150,0.9)",
+                          padding: "8px 10px",
+                          minHeight: 44,
                         }}
                         onMouseEnter={(e) => (e.currentTarget.style.color = "var(--copper)")}
                         onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(163,68,30,0.7)")}
@@ -239,13 +281,29 @@ export function PlacementPhase({ onConfirm, myReady, opponentReady }: PlacementP
               )}
 
               {/* Confirm placement */}
+              {placeError && (
+                <p role="alert" style={{
+                  fontFamily: "var(--sans)",
+                  fontSize: "13px",
+                  color: "#ffb4a8",
+                  margin: 0,
+                }}>{placeError}</p>
+              )}
+              <p style={{
+                fontFamily: "var(--mono)",
+                fontSize: "12px",
+                color: "rgba(246,239,224,0.7)",
+                margin: 0,
+              }}>{fleet.length} of 5 ships placed{selected ? ` · ${selected} selected` : ""}</p>
+
               <button
                 onClick={handleConfirm}
                 disabled={!allPlaced || myReady}
                 className="btn-primary"
-                style={{ width: "100%" }}
+                style={{ width: "100%", minHeight: 48 }}
+                data-testid="confirm-fleet"
               >
-                {myReady ? "Awaiting Opponent..." : "Confirm Placement"}
+                {myReady ? "Waiting for opponent…" : allPlaced ? "Confirm fleet" : "Place all 5 ships"}
               </button>
 
               {myReady && opponentReady && (
@@ -282,7 +340,7 @@ export function PlacementPhase({ onConfirm, myReady, opponentReady }: PlacementP
           <ShipSvg
             type={draggingType}
             orientation={orientation}
-            cellSize={CELL_SIZE}
+            cellSize={cellSize}
           />
         )}
       </DragOverlay>

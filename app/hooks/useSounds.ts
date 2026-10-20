@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type SoundName = "place" | "score" | "yourTurn" | "gameOver" | "chat";
+type SoundName = "place" | "score" | "miss" | "yourTurn" | "gameOver" | "chat";
 
 function createTone(
   ctx: AudioContext,
@@ -43,6 +43,10 @@ function playGameOverSound(ctx: AudioContext) {
   });
 }
 
+function playMissSound(ctx: AudioContext) {
+  createTone(ctx, 220, 0.12, "triangle", 0.08);
+}
+
 function playChatSound(ctx: AudioContext) {
   createTone(ctx, 880, 0.06, "sine", 0.06);
 }
@@ -83,6 +87,7 @@ export function useSounds() {
       switch (sound) {
         case "place": playPlaceSound(ctx); break;
         case "score": playScoreSound(ctx); break;
+        case "miss": playMissSound(ctx); break;
         case "yourTurn": playYourTurnSound(ctx); break;
         case "gameOver": playGameOverSound(ctx); break;
         case "chat": playChatSound(ctx); break;

@@ -1,7 +1,9 @@
+import { useEffect, useState } from "react";
 import type { PlacedShip } from "~/domain/types";
 import { FleetBoard } from "../board/FleetBoard";
 import { AttackBoard } from "../board/AttackBoard";
 import { ShipStatusPanel } from "./ShipStatusPanel";
+import { useCellSize } from "~/hooks/useCellSize";
 
 interface DualBoardLayoutProps {
   myFleet: PlacedShip[];
@@ -14,6 +16,7 @@ interface DualBoardLayoutProps {
   onFire: (row: number, col: number) => void;
   myName: string;
   opponentName: string;
+  over?: boolean;
 }
 
 export function DualBoardLayout({
@@ -27,26 +30,53 @@ export function DualBoardLayout({
   onFire,
   myName,
   opponentName,
+  over = false,
 }: DualBoardLayoutProps) {
+  const cellSize = useCellSize();
+  const [boardView, setBoardView] = useState<"attack" | "fleet">(isMyTurn ? "attack" : "fleet");
+
+  useEffect(() => {
+    setBoardView(isMyTurn ? "attack" : "fleet");
+  }, [isMyTurn]);
+
+  const banner = over
+    ? "Engagement over"
+    : isMyTurn
+      ? "Your shot — tap the enemy grid"
+      : `Waiting for ${opponentName} to fire`;
+
   return (
-    <div className="w-full max-w-4xl bs-boards-wrap">
-      {/* Turn indicator — stencil chip */}
-      <div style={{ textAlign: "center", marginBottom: "18px" }}>
-        <span className="stencil-chip">
-          {isMyTurn
-            ? "Captain · Your Move"
-            : `Awaiting ${opponentName}`}
+    <div className="w-full bs-play" data-testid="battle">
+      <div className="bs-turn" data-testid="turn-banner" data-my-turn={isMyTurn ? "yes" : "no"}>
+        <span className={`stencil-chip ${isMyTurn ? "" : "stencil-chip-wait"}`}>
+          {banner}
         </span>
       </div>
 
-      {/* Desktop: side by side. Mobile: scaled to fit viewport */}
-      <div className="bs-boards-scale" style={{ display: "flex", flexWrap: "wrap", gap: "24px", justifyContent: "center" }}>
+      <div className="bs-board-switch" role="tablist" aria-label="Which grid">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={boardView === "attack"}
+          className={boardView === "attack" ? "is-on" : ""}
+          onClick={() => setBoardView("attack")}
+        >
+          Enemy waters
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={boardView === "fleet"}
+          className={boardView === "fleet" ? "is-on" : ""}
+          onClick={() => setBoardView("fleet")}
+        >
+          Your fleet
+        </button>
+      </div>
 
-        {/* Attack board (opponent's grid) */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {/* Steel board frame */}
+      <div className="bs-boards" data-view={boardView}>
+        <div className="bs-board-pane bs-board-attack">
           <div className="board-frame">
-            {/* Rivets at corners */}
             <div style={{ position: "absolute", top: "9px", left: "9px" }} className="rivet" />
             <div style={{ position: "absolute", top: "9px", right: "9px" }} className="rivet" />
             <div style={{ position: "absolute", bottom: "9px", left: "9px" }} className="rivet" />
@@ -56,19 +86,18 @@ export function DualBoardLayout({
               sunkShips={opponentSunkShips}
               isMyTurn={isMyTurn}
               onFire={onFire}
-              label={`${opponentName}'s Grid`}
+              label={`${opponentName}'s grid`}
+              cellSize={cellSize}
             />
           </div>
           <ShipStatusPanel
             sunkShips={opponentSunkShips}
             shipsRemaining={opponentShipsRemaining}
-            label="Enemy Fleet Status"
+            label="Enemy fleet"
           />
         </div>
 
-        {/* Fleet board (your grid) */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-          {/* Steel board frame (slightly warmer tint for "yours") */}
+        <div className="bs-board-pane bs-board-fleet">
           <div className="board-frame" style={{
             background: `
               repeating-linear-gradient(88deg,
@@ -79,7 +108,6 @@ export function DualBoardLayout({
               ),
               linear-gradient(180deg, #1a3455 0%, #0f2240 60%, #081525 100%)`,
           }}>
-            {/* Rivets at corners */}
             <div style={{ position: "absolute", top: "9px", left: "9px" }} className="rivet" />
             <div style={{ position: "absolute", top: "9px", right: "9px" }} className="rivet" />
             <div style={{ position: "absolute", bottom: "9px", left: "9px" }} className="rivet" />
@@ -87,32 +115,13 @@ export function DualBoardLayout({
             <FleetBoard
               fleet={myFleet}
               incomingAttacks={myIncomingAttacks}
-              label={`${myName}'s Fleet`}
+              label={`${myName}'s fleet`}
+              cellSize={cellSize}
             />
           </div>
-
-          {/* Fleet count panel */}
-          <div style={{
-            background: "linear-gradient(180deg, rgba(15,29,51,0.9) 0%, rgba(8,21,37,0.95) 100%)",
-            border: "1px solid rgba(100,160,255,0.15)",
-            borderRadius: "6px",
-            padding: "10px 14px",
-          }}>
-            <p style={{
-              fontFamily: "var(--serif)",
-              fontVariant: "small-caps",
-              letterSpacing: "0.22em",
-              fontSize: "10px",
-              color: "var(--gold-hi)",
-              opacity: 0.7,
-            }}>Your Fleet</p>
-            <p style={{
-              fontFamily: "var(--mono)",
-              fontSize: "13px",
-              color: "var(--bone)",
-              marginTop: "4px",
-              fontVariantNumeric: "tabular-nums",
-            }}>
+          <div className="bs-fleet-count">
+            <p className="bs-kicker">Your fleet</p>
+            <p className="bs-count">
               {myShipsRemaining} ship{myShipsRemaining !== 1 ? "s" : ""} remaining
             </p>
           </div>

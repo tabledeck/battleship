@@ -48,10 +48,7 @@ export default function Index({ loaderData }: Route.ComponentProps) {
   };
 
   return (
-    <div
-      className="min-h-screen blueprint-grid flex flex-col items-center justify-center p-4"
-      style={{ position: "relative", overflow: "hidden" }}
-    >
+    <div className="blueprint-grid bs-lobby">
       {/* Subtle radial light */}
       <div style={{
         position: "absolute",
@@ -61,7 +58,7 @@ export default function Index({ loaderData }: Route.ComponentProps) {
       }} />
 
       {/* Nav row */}
-      <div style={{ position: "absolute", top: "16px", left: "16px", right: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div className="bs-lobby-nav">
         <a
           href="https://tabledeck.us"
           style={{
@@ -152,7 +149,7 @@ export default function Index({ loaderData }: Route.ComponentProps) {
           fontVariant: "small-caps",
           fontSize: "11px",
           letterSpacing: "0.42em",
-          color: "rgba(246,239,224,0.35)",
+          color: "rgba(246,239,224,0.7)",
           marginTop: "12px",
           marginBottom: 0,
         }}>
@@ -210,7 +207,7 @@ export default function Index({ loaderData }: Route.ComponentProps) {
           onClick={createGame}
           disabled={creating}
           className="btn-primary"
-          style={{ width: "100%" }}
+          style={{ width: "100%", minHeight: 48 }}
         >
           {creating ? "Preparing Fleet..." : "New Engagement"}
         </button>
@@ -269,7 +266,7 @@ export default function Index({ loaderData }: Route.ComponentProps) {
               <span style={{
                 fontFamily: "var(--sans)",
                 fontSize: "12px",
-                color: "rgba(246,239,224,0.45)",
+                color: "rgba(246,239,224,0.78)",
                 lineHeight: 1.5,
               }}>{step}</span>
             </li>
@@ -278,15 +275,7 @@ export default function Index({ loaderData }: Route.ComponentProps) {
       </div>
 
       {/* Footer mark */}
-      <p style={{
-        position: "absolute",
-        bottom: "16px",
-        fontFamily: "var(--serif)",
-        fontVariant: "small-caps",
-        fontSize: "10px",
-        letterSpacing: "0.28em",
-        color: "rgba(201,162,74,0.18)",
-      }}>Tabledeck</p>
+      <p className="bs-lobby-foot">Tabledeck</p>
     </div>
   );
 }

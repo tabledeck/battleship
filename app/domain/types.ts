@@ -38,6 +38,8 @@ export interface PlayerState {
 
 export type GameStatus = "waiting" | "guessing" | "placing" | "active" | "finished";
 
+export type EndReason = "ships_sunk" | "forfeit" | null;
+
 export interface GameState {
   status: GameStatus;
   players: (PlayerState | null)[];
@@ -46,6 +48,8 @@ export interface GameState {
   winner: number | null;
   guesses: (number | null)[];
   guessTarget: number | null;
+  endReason: EndReason;
+  forfeitedBy: number | null;
 }
 
 export interface GameSettings extends BaseSettings {

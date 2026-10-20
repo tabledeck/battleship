@@ -3,9 +3,6 @@ import { BOARD_SIZE, posKey, getShipCells } from "~/domain/board";
 import { BoardCell } from "./BoardCell";
 import { ShipSvg } from "../ships/ShipSvg";
 
-const CELL_SIZE = 34;
-
-// Column labels A–J
 const COL_LABELS = ["A","B","C","D","E","F","G","H","I","J"];
 
 interface AttackBoardProps {
@@ -14,6 +11,7 @@ interface AttackBoardProps {
   isMyTurn: boolean;
   onFire: (row: number, col: number) => void;
   label?: string;
+  cellSize?: number;
 }
 
 export function AttackBoard({
@@ -22,6 +20,7 @@ export function AttackBoard({
   isMyTurn,
   onFire,
   label = "Opponent's Grid",
+  cellSize = 34,
 }: AttackBoardProps) {
   const sunkCells = new Set<string>();
   for (const ship of sunkShips) {
@@ -68,7 +67,7 @@ export function AttackBoard({
       <div style={{ display: "flex", paddingLeft: "20px", marginBottom: "2px" }}>
         {COL_LABELS.map((l) => (
           <div key={l} style={{
-            width: CELL_SIZE,
+            width: cellSize,
             textAlign: "center",
             fontFamily: "var(--mono)",
             fontSize: "9px",
@@ -83,7 +82,7 @@ export function AttackBoard({
         <div style={{ display: "flex", flexDirection: "column", marginRight: "2px" }}>
           {Array.from({ length: BOARD_SIZE }, (_, row) => (
             <div key={row} style={{
-              height: CELL_SIZE,
+              height: cellSize,
               width: "18px",
               display: "flex",
               alignItems: "center",
@@ -100,8 +99,8 @@ export function AttackBoard({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: `repeat(${BOARD_SIZE}, ${CELL_SIZE}px)`,
-            gridTemplateRows: `repeat(${BOARD_SIZE}, ${CELL_SIZE}px)`,
+            gridTemplateColumns: `repeat(${BOARD_SIZE}, ${cellSize}px)`,
+            gridTemplateRows: `repeat(${BOARD_SIZE}, ${cellSize}px)`,
             position: "relative",
             border: borderColor,
             borderRadius: 4,
@@ -116,10 +115,15 @@ export function AttackBoard({
                 row={row}
                 col={col}
                 state={getCellState(row, col)}
-                cellSize={CELL_SIZE}
+                cellSize={cellSize}
                 clickable={isCellClickable(row, col)}
                 onClick={isMyTurn ? onFire : undefined}
                 boardType="attack"
+                ariaLabel={
+                  isCellClickable(row, col)
+                    ? `Fire at ${COL_LABELS[col]}${row + 1}`
+                    : `${COL_LABELS[col]}${row + 1}, ${getCellState(row, col)}`
+                }
               />
             ))
           )}
@@ -134,8 +138,8 @@ export function AttackBoard({
                 key={`sunk-${ship.type}`}
                 style={{
                   position: "absolute",
-                  top: first.row * CELL_SIZE,
-                  left: first.col * CELL_SIZE,
+                  top: first.row * cellSize,
+                  left: first.col * cellSize,
                   pointerEvents: "none",
                   zIndex: 2,
                   opacity: 0.65,
@@ -144,7 +148,7 @@ export function AttackBoard({
                 <ShipSvg
                   type={ship.type}
                   orientation={ship.orientation}
-                  cellSize={CELL_SIZE}
+                  cellSize={cellSize}
                   sunk
                   hitCount={ship.hits.length}
                 />

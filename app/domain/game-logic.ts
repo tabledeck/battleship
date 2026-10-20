@@ -10,6 +10,8 @@ export function initializeGame(settings: GameSettings): GameState {
     winner: null,
     guesses: [null, null],
     guessTarget: null,
+    endReason: null,
+    forfeitedBy: null,
   };
 }
 
@@ -35,6 +37,8 @@ export function serializeGameState(state: GameState): Record<string, unknown> {
     winner: state.winner,
     guesses: state.guesses,
     guessTarget: state.guessTarget,
+    endReason: state.endReason,
+    forfeitedBy: state.forfeitedBy,
     // Include fleet in storage serialization so it survives DO eviction
     players: state.players.map((p) =>
       p
@@ -61,6 +65,8 @@ export function publicGameState(state: GameState): Record<string, unknown> {
     moveCount: state.moveCount,
     winner: state.winner,
     guesses: state.guesses,
+    endReason: state.endReason,
+    forfeitedBy: state.forfeitedBy,
     players: state.players
       .filter(Boolean)
       .map((p) => ({
@@ -109,5 +115,7 @@ export function deserializeGameState(data: Record<string, unknown>): GameState {
     winner: raw.winner ?? null,
     guesses: raw.guesses ?? [null, null],
     guessTarget: raw.guessTarget ?? null,
+    endReason: raw.endReason ?? null,
+    forfeitedBy: raw.forfeitedBy ?? null,
   };
 }

@@ -7,9 +7,10 @@ interface ActivePhaseProps {
   players: PublicPlayerState[];
   currentTurn: number;
   onFire: (row: number, col: number) => void;
+  over?: boolean;
 }
 
-export function ActivePhase({ mySeat, myFleet, players, currentTurn, onFire }: ActivePhaseProps) {
+export function ActivePhase({ mySeat, myFleet, players, currentTurn, onFire, over = false }: ActivePhaseProps) {
   const me = players.find((p) => p.seat === mySeat);
   const opponent = players.find((p) => p.seat !== mySeat);
 
@@ -24,7 +25,7 @@ export function ActivePhase({ mySeat, myFleet, players, currentTurn, onFire }: A
     );
   }
 
-  const isMyTurn = currentTurn === mySeat;
+  const isMyTurn = !over && currentTurn === mySeat;
 
   return (
     <DualBoardLayout
@@ -38,6 +39,7 @@ export function ActivePhase({ mySeat, myFleet, players, currentTurn, onFire }: A
       onFire={onFire}
       myName={me.name}
       opponentName={opponent.name}
+      over={over}
     />
   );
 }
