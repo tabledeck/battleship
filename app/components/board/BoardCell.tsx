@@ -6,6 +6,7 @@ interface BoardCellProps {
   clickable?: boolean;
   cellSize?: number;
   boardType?: "fleet" | "attack";
+  ariaLabel?: string;
 }
 
 export function BoardCell({
@@ -16,24 +17,18 @@ export function BoardCell({
   clickable = false,
   cellSize = 36,
   boardType = "attack",
+  ariaLabel,
 }: BoardCellProps) {
-  // Determine background class based on board type and state
   let bgClass = boardType === "fleet" ? "bg-grid-paper" : "bg-grid-steel";
 
-  if (state === "ship") {
-    bgClass = "bg-grid-paper"; // ships are always on fleet board
-  } else if (state === "preview-valid") {
-    bgClass = "bg-grid-paper";
-  } else if (state === "preview-invalid") {
+  if (state === "ship" || state === "preview-valid" || state === "preview-invalid") {
     bgClass = "bg-grid-paper";
   }
 
-  // Border class varies by board type
   const borderClass = boardType === "fleet"
     ? "border border-navy/10"
     : "border border-white/10";
 
-  // Extra styling for preview states
   const previewClass = state === "preview-valid"
     ? "drag-preview-valid"
     : state === "preview-invalid"
@@ -41,21 +36,39 @@ export function BoardCell({
     : "";
 
   const hoverClass = clickable
-    ? "hover:brightness-125 transition-all duration-100 cursor-pointer"
+    ? "hover:brightness-125 active:brightness-90 transition-all duration-100 cursor-pointer"
     : "cursor-default";
 
-  // Ship SVG overlays sit at zIndex: 2; pegs must sit above so hits on the
-  // player's own board remain visible through the ship graphic.
   const pegStyle = { zIndex: 4 } as const;
+  const interactive = Boolean(clickable && onClick);
 
-  return (
-    <div
-      style={{ width: cellSize, height: cellSize, flexShrink: 0 }}
-      className={`${bgClass} ${borderClass} ${previewClass} ${hoverClass} flex items-center justify-center relative box-border`}
-      onClick={clickable && onClick ? () => onClick(row, col) : undefined}
-    >
+  const shared = {
+    style: { width: cellSize, height: cellSize, flexShrink: 0 } as const,
+    className: `bs-cell ${bgClass} ${borderClass} ${previewClass} ${hoverClass} flex items-center justify-center relative box-border`,
+    "data-row": row,
+    "data-col": col,
+    "data-board": boardType,
+    "aria-label": ariaLabel,
+  };
+
+  const inner = (
+    <>
       {state === "hit" && <div className="peg-hit" style={pegStyle} />}
       {state === "miss" && <div className="peg-miss" style={pegStyle} />}
-    </div>
+    </>
   );
+
+  if (interactive) {
+    return (
+      <button
+        type="button"
+        {...shared}
+        onClick={() => onClick!(row, col)}
+      >
+        {inner}
+      </button>
+    );
+  }
+
+  return <div {...shared}>{inner}</div>;
 }

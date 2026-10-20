@@ -9,6 +9,8 @@ import { Chat } from "~/components/chat/Chat";
 import { PlacementPhase } from "~/components/game/PlacementPhase";
 import { ActivePhase } from "~/components/game/ActivePhase";
 import { useGameWebSocket } from "@tabledeck/game-room/client";
+import { useSounds } from "~/hooks/useSounds";
+import type { EndReason } from "~/domain/types";
 
 export function meta({ params }: Route.MetaArgs) {
   return [{ title: `Game ${params.gameId} — Battleship` }];
@@ -99,7 +101,7 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
   }
 
   // Fetch game state from DO for SSR
-  let initialState: Record<string, unknown> = { status: "waiting", players: [], guesses: [null, null], currentTurn: 0, moveCount: 0, winner: null };
+  let initialState: Record<string, unknown> = { status: "waiting", players: [], guesses: [null, null], currentTurn: 0, moveCount: 0, winner: null, endReason: null, forfeitedBy: null };
   let yourFleet: PlacedShip[] = [];
   try {
     const env = (context as any).cloudflare?.env as Env | undefined;
@@ -126,6 +128,8 @@ export async function loader({ params, request, context }: Route.LoaderArgs) {
           moveCount: rawState.moveCount ?? 0,
           winner: rawState.winner ?? null,
           guesses: rawState.guesses ?? [null, null],
+          endReason: rawState.endReason ?? null,
+          forfeitedBy: rawState.forfeitedBy ?? null,
         };
         // Extract this player's fleet if present
         if (mySeat >= 0 && rawState.players) {
@@ -217,6 +221,8 @@ interface PublicGameState {
   moveCount: number;
   winner: number | null;
   guesses: (number | null)[];
+  endReason: EndReason;
+  forfeitedBy: number | null;
 }
 
 function parsePublicState(raw: Record<string, unknown>): PublicGameState {
@@ -228,6 +234,8 @@ function parsePublicState(raw: Record<string, unknown>): PublicGameState {
     moveCount: r.moveCount ?? 0,
     winner: r.winner ?? null,
     guesses: r.guesses ?? [null, null],
+    endReason: r.endReason ?? null,
+    forfeitedBy: r.forfeitedBy ?? null,
   };
 }
 
@@ -256,7 +264,11 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
   // Game state
   const [gameState, setGameState] = useState<PublicGameState>(() => parsePublicState(initialState));
   const [myFleet, setMyFleet] = useState<PlacedShip[]>(initialFleet);
-  const [myGuess, setMyGuess] = useState<number | null>(null);
+  const [myGuess, setMyGuess] = useState<number | null>(() => {
+    const guesses = (initialState as { guesses?: (number | null)[] }).guesses;
+    if (initialSeat < 0 || !guesses) return null;
+    return guesses[initialSeat] ?? null;
+  });
   const [guessReveal, setGuessReveal] = useState<{ guesses: (number | null)[]; guessTarget: number; firstSeat: number } | null>(null);
 
   // UI state
@@ -267,7 +279,13 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
     Array<{ seat: number; text: string; playerName: string; timestamp: number }>
   >([]);
   const [chatOpen, setChatOpen] = useState(false);
-  const [lastShotResult, setLastShotResult] = useState<{ row: number; col: number; result: "hit" | "miss" } | null>(null);
+  const [lastShotResult, setLastShotResult] = useState<{ row: number; col: number; result: "hit" | "miss"; sunk?: string } | null>(null);
+  const [notice, setNotice] = useState("");
+  const [forfeitOpen, setForfeitOpen] = useState(false);
+  const [hideResult, setHideResult] = useState(false);
+  const [rematchOffer, setRematchOffer] = useState<string | null>(null);
+  const [liveShareUrl, setLiveShareUrl] = useState(shareUrl);
+  const { play, muted, toggleMute } = useSounds();
 
   // Merge DB players on first load
   useEffect(() => {
@@ -290,6 +308,10 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
     });
   }, [dbPlayers]);
 
+  useEffect(() => {
+    setLiveShareUrl(`${window.location.origin}/game/${gameId}`);
+  }, [gameId]);
+
   const { send } = useGameWebSocket({
     gameId,
     seat: mySeat,
@@ -302,6 +324,7 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
           case "game_state": {
             const s = parsePublicState(msg.state as Record<string, unknown>);
             setGameState(s);
+            if (mySeat >= 0 && s.guesses[mySeat] != null) setMyGuess(s.guesses[mySeat]);
             if ((msg as any).yourFleet) {
               setMyFleet((msg as any).yourFleet as PlacedShip[]);
             }
@@ -330,9 +353,35 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
 
           case "shot_result": {
             const sr = msg as Extract<ServerMessage, { type: "shot_result" }>;
-            setLastShotResult({ row: sr.row, col: sr.col, result: sr.result });
-            setTimeout(() => setLastShotResult(null), 2000);
-            // game_state broadcast will follow
+            setLastShotResult({ row: sr.row, col: sr.col, result: sr.result, sunk: sr.sunk });
+            play(sr.result === "hit" ? "score" : "miss");
+            if (sr.gameOver) play("gameOver");
+            setTimeout(() => setLastShotResult(null), 2200);
+            break;
+          }
+
+          case "game_over": {
+            const go = msg as Extract<ServerMessage, { type: "game_over" }>;
+            setGameState((prev) => ({
+              ...prev,
+              status: "finished",
+              winner: go.winner,
+              endReason: go.reason,
+              forfeitedBy: go.forfeitedBy,
+            }));
+            setForfeitOpen(false);
+            play("gameOver");
+            break;
+          }
+
+          case "rematch_offered": {
+            const offer = msg as Extract<ServerMessage, { type: "rematch_offered" }>;
+            if (offer.fromSeat !== mySeat) setRematchOffer(offer.gameId);
+            break;
+          }
+
+          case "error": {
+            setNotice(msg.message);
             break;
           }
 
@@ -390,7 +439,7 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
           }
         }
       },
-      [gameState.players],
+      [gameState.players, mySeat, play],
     ),
   });
 
@@ -441,10 +490,23 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
     }
   }, [joinFetcher.state, joinFetcher.data]);
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(shareUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopyLink = async () => {
+    const url = liveShareUrl;
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: "Battleship", text: "Join my Battleship game on Tabledeck", url });
+        return;
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setNotice("Couldn't copy automatically. Select the link and copy it.");
+    }
   };
 
   const handleRematch = async () => {
@@ -466,7 +528,10 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
         return;
       }
 
-      window.location.href = `/game/${body.gameId}`;
+      send({ type: "rematch_invite", gameId: body.gameId });
+      window.setTimeout(() => {
+        window.location.href = `/game/${body.gameId}`;
+      }, 250);
     } catch {
       setRematchError("Network error. Please try again.");
       setCreatingRematch(false);
@@ -488,13 +553,37 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
     send({ type: "fire_shot", row, col });
   };
 
-  const { status, players, currentTurn, winner, guesses } = gameState;
+  const handleForfeit = () => {
+    send({ type: "forfeit" });
+    setForfeitOpen(false);
+  };
+
+  const { status, players, currentTurn, winner, guesses, endReason, forfeitedBy } = gameState;
   const sortedPlayers = [...players].sort((a, b) => a.seat - b.seat);
   const me = players.find((p) => p.seat === mySeat);
   const myReady = me?.ready ?? false;
   const opponent = players.find((p) => p.seat !== mySeat);
   const opponentReady = opponent?.ready ?? false;
   const winnerPlayer = winner !== null ? players.find((p) => p.seat === winner) : null;
+  const canForfeit = mySeat >= 0 && (status === "guessing" || status === "placing" || status === "active");
+
+  const requestLeave = () => {
+    if (canForfeit) setForfeitOpen(true);
+    else window.location.href = "/";
+  };
+
+  const lastChime = useRef("");
+  useEffect(() => {
+    const key = `${status}:${currentTurn}:${mySeat}`;
+    if (lastChime.current === key) return;
+    const prev = lastChime.current;
+    lastChime.current = key;
+    if (!prev) return;
+    if (status === "active" && currentTurn === mySeat) play("yourTurn");
+  }, [status, currentTurn, mySeat, play]);
+
+  const phaseOrder = ["waiting", "guessing", "placing", "active"] as const;
+  const phaseIndex = status === "finished" ? 3 : Math.max(0, phaseOrder.indexOf(status as typeof phaseOrder[number]));
 
   // Shared modal overlay style
   const modalOverlay: React.CSSProperties = {
@@ -524,8 +613,9 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
 
   return (
     <div
-      className="min-h-screen game-surface flex flex-col items-center p-2"
-      style={{ gap: "12px" }}
+      className="min-h-screen game-surface flex flex-col items-center px-3 py-2"
+      style={{ gap: "12px", paddingTop: "calc(8px + env(safe-area-inset-top))" }}
+      data-phase={status}
     >
       {/* Guest name modal */}
       {showNameModal && (
@@ -544,16 +634,19 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
               color: "var(--ink)",
               marginBottom: "6px",
               marginTop: 0,
-            }}>Join Game</h2>
+            }}>{dbPlayers.length === 0 ? "Name your command" : "Join this engagement"}</h2>
             <p style={{
               fontFamily: "var(--sans)",
-              fontSize: "12px",
+              fontSize: "14px",
+              lineHeight: 1.45,
               color: "var(--ink-soft)",
               marginBottom: "20px",
             }}>
-              Enter a name to play as a guest, or{" "}
-              <a href="/login" style={{ color: "var(--ink)", fontWeight: 600, textDecoration: "underline" }}>sign in</a>{" "}
-              for a profile.
+              {dbPlayers.length === 0
+                ? "Pick a name, then share the link. The game starts as soon as your opponent joins."
+                : "Pick a name to take the open seat. You'll guess a number, place ships, then fire."}{" "}
+              Or{" "}
+              <a href="/login" style={{ color: "var(--ink)", fontWeight: 600, textDecoration: "underline" }}>sign in</a>.
             </p>
             {(joinFetcher.data as any)?.error && (
               <p style={{ fontFamily: "var(--sans)", fontSize: "12px", color: "var(--copper)", marginBottom: "10px", textAlign: "center" }}>
@@ -581,7 +674,7 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
               className="btn-primary"
               style={{ width: "100%" }}
             >
-              {joinFetcher.state !== "idle" ? "Joining..." : "Board Ship"}
+              {joinFetcher.state !== "idle" ? "Joining..." : "Take command"}
             </button>
             <a
               href="/"
@@ -604,7 +697,7 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
       )}
 
       {/* Game over modal */}
-      {status === "finished" && (
+      {status === "finished" && !hideResult && (
         <div style={modalOverlay}>
           <div style={{ ...modalBox, textAlign: "center" }}>
             <div style={{ position: "absolute", top: "10px", left: "10px" }} className="rivet" />
@@ -620,16 +713,20 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
               marginTop: 0,
               marginBottom: "8px",
             }}>
-              {winnerPlayer?.seat === mySeat ? "Victory!" : "Defeated"}
+              {winnerPlayer?.seat === mySeat ? "Victory" : "Defeat"}
             </h2>
             <p style={{
               fontFamily: "var(--serif)",
               fontStyle: "italic",
-              fontSize: "14px",
+              fontSize: "15px",
               color: "var(--ink-soft)",
               marginBottom: "24px",
             }}>
-              {winnerPlayer?.name ?? "Someone"} sunk all the ships.
+              {endReason === "forfeit"
+                ? forfeitedBy === mySeat
+                  ? "You forfeited. Your opponent takes the win."
+                  : `${players.find((p) => p.seat === forfeitedBy)?.name ?? "Your opponent"} forfeited.`
+                : `${winnerPlayer?.name ?? "Someone"} sunk the fleet.`}
             </p>
             {rematchError && (
               <p style={{ fontFamily: "var(--sans)", fontSize: "12px", color: "var(--copper)", marginBottom: "12px" }}>
@@ -645,8 +742,11 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
               >
                 {creatingRematch ? "Launching..." : "Rematch"}
               </button>
-              <a href="/" className="btn-ghost" style={{ display: "inline-flex", alignItems: "center" }}>
-                New Engagement
+              <button type="button" className="btn-secondary" onClick={() => setHideResult(true)}>
+                See the boards
+              </button>
+              <a href="/" className="btn-secondary" style={{ display: "inline-flex", alignItems: "center", color: "var(--ink)" }}>
+                Leave
               </a>
             </div>
           </div>
@@ -680,40 +780,43 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
         </div>
       )}
 
-      {/* Header */}
-      <div className="w-full max-w-4xl" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 0" }}>
-        <a
-          href="/"
-          style={{
-            fontFamily: "var(--serif)",
-            fontVariant: "small-caps",
-            fontSize: "11px",
-            letterSpacing: "0.22em",
-            color: "rgba(246,239,224,0.4)",
-            textDecoration: "none",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--gold)")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(246,239,224,0.4)")}
-        >
-          Home
-        </a>
-        <h1 className="bs-header-title" style={{
-          fontFamily: "var(--serif)",
-          fontVariant: "small-caps",
-          fontWeight: 600,
-          fontSize: "20px",
-          letterSpacing: "0.3em",
-          color: "var(--gold-hi)",
-          margin: 0,
-          textShadow: "0 1px 0 rgba(0,0,0,0.4)",
-        }}>Battleship</h1>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <button
-            onClick={handleCopyLink}
-            className="btn-ghost"
-            style={{ padding: "4px 10px" }}
-          >
-            {copied ? "Copied!" : "Share Link"}
+      {forfeitOpen && (
+        <div style={modalOverlay}>
+          <div style={modalBox}>
+            <h2 style={{
+              fontFamily: "var(--serif)",
+              fontVariant: "small-caps",
+              letterSpacing: "0.14em",
+              fontSize: "22px",
+              marginTop: 0,
+            }}>Forfeit this engagement?</h2>
+            <p style={{ fontFamily: "var(--sans)", fontSize: "14px", lineHeight: 1.45, color: "var(--ink-soft)" }}>
+              Your opponent wins immediately. This is recorded as a finished game.
+            </p>
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "8px" }}>
+              <button type="button" className="btn-primary" onClick={() => setForfeitOpen(false)}>Keep playing</button>
+              <button type="button" className="btn-secondary" onClick={handleForfeit} data-testid="confirm-forfeit">Forfeit</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <header className="bs-topbar bs-shell">
+        <div className="bs-topbar-brand">
+          <button type="button" className="btn-ghost" onClick={requestLeave}>Home</button>
+          <h1>Battleship</h1>
+        </div>
+        <div className="bs-topbar-actions">
+          <button type="button" className="btn-ghost" onClick={handleCopyLink}>
+            {copied ? "Copied" : "Share"}
+          </button>
+          {canForfeit && (
+            <button type="button" className="btn-ghost" onClick={() => setForfeitOpen(true)} data-testid="forfeit">
+              Forfeit
+            </button>
+          )}
+          <button type="button" className="btn-ghost" onClick={toggleMute} aria-pressed={muted} aria-label={muted ? "Unmute sounds" : "Mute sounds"}>
+            {muted ? "Muted" : "Mute"}
           </button>
           {mySeat >= 0 && (
             <Chat
@@ -725,183 +828,100 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
             />
           )}
         </div>
+      </header>
+
+      <div className="bs-phase bs-shell" aria-label="Game progress">
+        {["Join", "Guess", "Deploy", "Battle"].map((label, i) => (
+          <span key={label} className={i === phaseIndex ? "is-now" : i < phaseIndex ? "is-done" : ""}>
+            {label}
+          </span>
+        ))}
       </div>
 
-      {/* Player list */}
-      <div className="w-full max-w-4xl" style={{ display: "flex", gap: "8px" }}>
-        {sortedPlayers.map((p) => {
-          const isActive = p.seat === currentTurn && status === "active";
-          return (
-            <div
-              key={p.seat}
-              style={{
-                flex: 1,
-                borderRadius: "6px",
-                padding: "8px 12px",
-                border: isActive
-                  ? "1px solid rgba(201,162,74,0.45)"
-                  : "1px solid rgba(100,160,255,0.12)",
-                background: isActive
-                  ? "linear-gradient(90deg, rgba(201,162,74,0.12), transparent 80%)"
-                  : "rgba(15,29,51,0.6)",
-                boxShadow: isActive ? "inset 2px 0 0 var(--gold)" : "none",
-              }}
-            >
-              <span style={{
-                fontFamily: "var(--serif)",
-                fontWeight: 600,
-                fontSize: "14px",
-                color: isActive ? "var(--gold-hi)" : "var(--bone)",
-                opacity: isActive ? 1 : 0.7,
-              }}>{p.name}</span>
-              {p.seat === mySeat && (
-                <span style={{
-                  fontFamily: "var(--mono)",
-                  fontSize: "9px",
-                  color: "rgba(246,239,224,0.3)",
-                  marginLeft: "6px",
-                  letterSpacing: "0.1em",
-                }}>(you)</span>
-              )}
-              {!p.connected && (
-                <span style={{
-                  display: "inline-block",
-                  width: "6px",
-                  height: "6px",
-                  borderRadius: "50%",
-                  background: "rgba(120,120,120,0.5)",
-                  marginLeft: "6px",
-                  verticalAlign: "middle",
-                }} />
-              )}
-              {status === "placing" && (
-                <span style={{
-                  fontFamily: "var(--mono)",
-                  fontSize: "10px",
-                  marginLeft: "8px",
-                  color: p.ready ? "var(--gold)" : "rgba(246,239,224,0.3)",
-                  letterSpacing: "0.06em",
-                }}>
-                  {p.ready ? "Ready" : "Placing..."}
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {notice && (
+        <p role="alert" className="bs-shell" style={{ color: "#ffb4a8", fontFamily: "var(--sans)", fontSize: "14px", textAlign: "center", margin: 0 }}>
+          {notice}
+        </p>
+      )}
 
-      {/* Waiting phase */}
-      {status === "waiting" && (
-        <div style={{
-          background: "linear-gradient(180deg, rgba(15,29,51,0.95) 0%, rgba(8,21,37,0.98) 100%)",
-          border: "1px solid rgba(100,160,255,0.15)",
-          borderRadius: "10px",
-          padding: "20px 24px",
-          width: "100%",
-          maxWidth: "896px",
-          textAlign: "center",
-          boxShadow: "inset 0 1px 0 rgba(100,160,255,0.08), 0 8px 24px rgba(0,0,0,0.5)",
-          position: "relative",
-        }}>
-          <div style={{ position: "absolute", top: "10px", left: "10px" }} className="rivet" />
-          <div style={{ position: "absolute", top: "10px", right: "10px" }} className="rivet" />
-          <p style={{
-            fontFamily: "var(--serif)",
-            fontVariant: "small-caps",
-            fontSize: "14px",
-            letterSpacing: "0.22em",
-            color: "var(--gold-hi)",
-            opacity: 0.8,
-            marginBottom: "14px",
-          }}>
-            Awaiting Fleet · {sortedPlayers.length}/{maxPlayers}
-          </p>
-          <button onClick={handleCopyLink} className="btn-primary">
-            {copied ? "Link Copied!" : "Copy Invite Link"}
-          </button>
-          <p style={{
-            fontFamily: "var(--mono)",
-            fontSize: "10px",
-            color: "rgba(246,239,224,0.25)",
-            marginTop: "10px",
-          }}>{shareUrl}</p>
+      {rematchOffer && (
+        <div className="bs-offer bs-shell">
+          <span>Your opponent started a rematch.</span>
+          <a className="btn-primary" href={`/game/${rematchOffer}`}>Join rematch</a>
         </div>
       )}
 
-      {/* Guessing phase */}
-      {status === "guessing" && (
-        <div style={{
-          background: "linear-gradient(180deg, rgba(15,29,51,0.95) 0%, rgba(8,21,37,0.98) 100%)",
-          border: "1px solid rgba(100,160,255,0.15)",
-          borderRadius: "10px",
-          padding: "24px",
-          width: "100%",
-          maxWidth: "896px",
-          textAlign: "center",
-          position: "relative",
-        }}>
+      {status === "finished" && hideResult && (
+        <div className="bs-shell" style={{ textAlign: "center" }}>
+          <button type="button" className="btn-ghost" onClick={() => setHideResult(false)}>Show result</button>
+        </div>
+      )}
+
+      <div className="bs-players bs-shell">
+        {sortedPlayers.map((p) => {
+          const isTurn = p.seat === currentTurn && status === "active";
+          let meta = p.seat === mySeat ? "You" : "Opponent";
+          if (!p.connected) meta += " · offline";
+          else if (status === "placing") meta += p.ready ? " · fleet ready" : " · placing ships";
+          else if (status === "guessing") meta += guesses[p.seat] != null ? " · number locked" : " · choosing a number";
+          else if (isTurn) meta += " · firing";
+          else if (status === "active") meta += " · waiting";
+          else if (status === "finished" && winner === p.seat) meta += " · winner";
+          return (
+            <div key={p.seat} className={`bs-player-card ${isTurn ? "is-turn" : ""}`}>
+              <span className="bs-player-name">{p.name}</span>
+              <div className="bs-player-meta">{meta}</div>
+            </div>
+          );
+        })}
+        {sortedPlayers.length < maxPlayers && status === "waiting" && (
+          <div className="bs-player-card">
+            <span className="bs-player-name">Open seat</span>
+            <div className="bs-player-meta">Waiting for opponent</div>
+          </div>
+        )}
+      </div>
+
+      {status === "waiting" && !showNameModal && (
+        <div className="bs-panel bs-shell">
           <div style={{ position: "absolute", top: "10px", left: "10px" }} className="rivet" />
           <div style={{ position: "absolute", top: "10px", right: "10px" }} className="rivet" />
-          <p style={{
-            fontFamily: "var(--serif)",
-            fontVariant: "small-caps",
-            fontWeight: 600,
-            fontSize: "16px",
-            letterSpacing: "0.22em",
-            color: "var(--gold-hi)",
-            marginBottom: "4px",
-          }}>Guess a Number 1–10</p>
-          <p style={{
-            fontFamily: "var(--serif)",
-            fontStyle: "italic",
-            fontSize: "12px",
-            color: "rgba(246,239,224,0.45)",
-            marginBottom: "18px",
-          }}>Closest to the secret number opens fire first.</p>
+          <h2 className="bs-panel-title">Waiting for your opponent</h2>
+          <p className="bs-help">
+            {sortedPlayers.length}/{maxPlayers} seated. Send this link. The moment they join, you both pick a number, place ships, then take turns firing.
+          </p>
+          <div className="bs-share-row">
+            <input readOnly value={liveShareUrl} aria-label="Invite link" onFocus={(e) => e.currentTarget.select()} />
+            <button type="button" onClick={handleCopyLink} className="btn-primary">
+              {copied ? "Copied" : "Share link"}
+            </button>
+          </div>
+        </div>
+      )}
 
+      {status === "guessing" && (
+        <div className="bs-panel bs-shell">
+          <div style={{ position: "absolute", top: "10px", left: "10px" }} className="rivet" />
+          <div style={{ position: "absolute", top: "10px", right: "10px" }} className="rivet" />
+          <h2 className="bs-panel-title">Who fires first?</h2>
+          <p className="bs-help">
+            Pick a number from 1 to 10. Closest to the secret number shoots first. After that, you each place a fleet.
+          </p>
           {mySeat >= 0 && myGuess === null ? (
-            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px", marginBottom: "16px" }}>
+            <div className="bs-guess-grid">
               {[1,2,3,4,5,6,7,8,9,10].map((n) => (
-                <button
-                  key={n}
-                  onClick={() => handleGuessNumber(n)}
-                  style={{
-                    width: "42px",
-                    height: "42px",
-                    borderRadius: "6px",
-                    background: "linear-gradient(180deg, var(--bone) 0%, #e2d4b0 100%)",
-                    border: "1px solid rgba(26,22,18,0.3)",
-                    color: "var(--ink)",
-                    fontFamily: "var(--mono)",
-                    fontWeight: 700,
-                    fontSize: "15px",
-                    cursor: "pointer",
-                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.7), 0 2px 4px rgba(0,0,0,0.3)",
-                    transition: "transform 0.1s ease",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-2px)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.transform = "none")}
-                >
-                  {n}
-                </button>
+                <button key={n} type="button" onClick={() => handleGuessNumber(n)}>{n}</button>
               ))}
             </div>
           ) : (
-            <p style={{
-              fontFamily: "var(--serif)",
-              fontVariant: "small-caps",
-              fontSize: "13px",
-              color: "var(--gold)",
-              letterSpacing: "0.18em",
-              marginBottom: "16px",
-            }}>
-              {mySeat >= 0 ? `You guessed ${myGuess}` : "Spectating"}
+            <p className="bs-status-line" style={{ marginBottom: 12 }}>
+              {mySeat >= 0 ? `Locked in: ${myGuess}. Waiting for the other number.` : "Spectating"}
             </p>
           )}
           <div>
             {sortedPlayers.map((p) => (
-              <p key={p.seat} style={{ fontFamily: "var(--sans)", fontSize: "12px", color: "rgba(246,239,224,0.45)", margin: "4px 0" }}>
-                {p.name}: {guesses[p.seat] !== undefined && guesses[p.seat] !== null ? "ready" : "waiting..."}
+              <p key={p.seat} className="bs-status-line">
+                {p.name}: {guesses[p.seat] != null ? "number locked" : "still choosing"}
               </p>
             ))}
           </div>
@@ -917,42 +937,31 @@ export default function GameRoom({ loaderData }: Route.ComponentProps) {
         />
       )}
 
-      {/* Active phase */}
-      {status === "active" && mySeat >= 0 && (
+      {(status === "active" || (status === "finished" && hideResult)) && mySeat >= 0 && (
         <ActivePhase
           mySeat={mySeat}
           myFleet={myFleet}
           players={players}
           currentTurn={currentTurn}
           onFire={handleFireShot}
+          over={status === "finished"}
         />
       )}
 
-      {/* Shot result toast */}
       {lastShotResult && (
-        <div style={{
-          position: "fixed",
-          bottom: "24px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          padding: "10px 24px",
-          borderRadius: "999px",
-          fontFamily: "var(--serif)",
-          fontVariant: "small-caps",
-          fontWeight: 700,
-          fontSize: "16px",
-          letterSpacing: "0.22em",
-          zIndex: 30,
-          boxShadow: "0 4px 14px rgba(0,0,0,0.6)",
-          background: lastShotResult.result === "hit"
-            ? "radial-gradient(circle at 35% 35%, #e15a44 0%, #c8372a 55%, #8b1f17 100%)"
-            : "linear-gradient(180deg, var(--bone) 0%, #c4b587 100%)",
-          color: lastShotResult.result === "hit" ? "var(--bone)" : "var(--ink)",
-          border: lastShotResult.result === "hit"
-            ? "1px solid rgba(200,55,42,0.5)"
-            : "1px solid rgba(26,22,18,0.25)",
-        }}>
-          {lastShotResult.result === "hit" ? "Hit!" : "Miss"}
+        <div
+          className="bs-toast"
+          role="status"
+          style={{
+            background: lastShotResult.result === "hit"
+              ? "radial-gradient(circle at 35% 35%, #e15a44 0%, #c8372a 55%, #8b1f17 100%)"
+              : "linear-gradient(180deg, var(--bone) 0%, #c4b587 100%)",
+            color: lastShotResult.result === "hit" ? "var(--bone)" : "var(--ink)",
+          }}
+        >
+          {lastShotResult.sunk
+            ? `Sunk the ${lastShotResult.sunk}`
+            : lastShotResult.result === "hit" ? "Hit" : "Miss"}
         </div>
       )}
     </div>

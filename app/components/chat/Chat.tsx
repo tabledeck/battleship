@@ -47,7 +47,7 @@ export function Chat({ messages, yourSeat, onSend, isOpen, onToggle }: ChatProps
       <button
         onClick={onToggle}
         className="btn-ghost"
-        style={{ padding: "5px 10px", display: "flex", alignItems: "center", gap: "6px" }}
+        style={{ display: "flex", alignItems: "center", gap: "6px", width: "100%" }}
       >
         <ChatIcon />
         Signal
@@ -68,11 +68,11 @@ export function Chat({ messages, yourSeat, onSend, isOpen, onToggle }: ChatProps
       </button>
 
       {isOpen && (
-        <div style={{
+        <div className="bs-chat-panel" style={{
           position: "absolute",
           top: "calc(100% + 8px)",
           right: 0,
-          width: "280px",
+          width: "min(320px, calc(100vw - 24px))",
           background: "linear-gradient(180deg, rgba(15,29,51,0.98) 0%, rgba(8,21,37,0.99) 100%)",
           border: "1px solid rgba(100,160,255,0.18)",
           borderRadius: "8px",

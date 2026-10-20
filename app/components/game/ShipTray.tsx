@@ -7,9 +7,11 @@ const TRAY_CELL_SIZE = 28;
 interface DraggableShipProps {
   shipDef: ShipDef;
   orientation: Orientation;
+  selected: boolean;
+  onSelect: (type: ShipDef["type"]) => void;
 }
 
-function DraggableShip({ shipDef, orientation }: DraggableShipProps) {
+function DraggableShip({ shipDef, orientation, selected, onSelect }: DraggableShipProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `tray-${shipDef.type}`,
     data: { shipType: shipDef.type, orientation },
@@ -27,13 +29,16 @@ function DraggableShip({ shipDef, orientation }: DraggableShipProps) {
         padding: "8px 10px",
         borderRadius: "6px",
         background: "rgba(23,41,75,0.7)",
-        border: "1px solid rgba(100,160,255,0.14)",
+        border: selected ? "1px solid rgba(201,162,74,0.85)" : "1px solid rgba(100,160,255,0.14)",
+        boxShadow: selected ? "0 0 0 2px rgba(201,162,74,0.35)" : "none",
+        minHeight: 44,
         display: "flex",
         flexDirection: "column",
         alignItems: "flex-start",
         gap: "4px",
         transition: "background 0.12s ease, border-color 0.12s ease",
       }}
+      onClick={() => onSelect(shipDef.type)}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLElement).style.background = "rgba(23,41,75,0.95)";
         (e.currentTarget as HTMLElement).style.borderColor = "rgba(201,162,74,0.3)";
@@ -68,9 +73,11 @@ function DraggableShip({ shipDef, orientation }: DraggableShipProps) {
 interface ShipTrayProps {
   ships: ShipDef[];
   orientation: Orientation;
+  selected: ShipDef["type"] | null;
+  onSelect: (type: ShipDef["type"]) => void;
 }
 
-export function ShipTray({ ships, orientation }: ShipTrayProps) {
+export function ShipTray({ ships, orientation, selected, onSelect }: ShipTrayProps) {
   if (ships.length === 0) {
     return (
       <div style={{
@@ -100,7 +107,13 @@ export function ShipTray({ ships, orientation }: ShipTrayProps) {
       }}>Ships to deploy:</p>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
         {ships.map((ship) => (
-          <DraggableShip key={ship.type} shipDef={ship} orientation={orientation} />
+          <DraggableShip
+            key={ship.type}
+            shipDef={ship}
+            orientation={orientation}
+            selected={selected === ship.type}
+            onSelect={onSelect}
+          />
         ))}
       </div>
     </div>

@@ -4,9 +4,6 @@ import { BOARD_SIZE, posKey, getShipCells, getShipSize } from "~/domain/board";
 import { BoardCell } from "./BoardCell";
 import { ShipSvg } from "../ships/ShipSvg";
 
-const CELL_SIZE = 34;
-
-// Column labels A–J
 const COL_LABELS = ["A","B","C","D","E","F","G","H","I","J"];
 
 interface FleetBoardProps {
@@ -15,6 +12,8 @@ interface FleetBoardProps {
   droppable?: boolean;
   previewShip?: PlacedShip | null;
   label?: string;
+  cellSize?: number;
+  onCellClick?: (row: number, col: number) => void;
 }
 
 export function FleetBoard({
@@ -23,6 +22,8 @@ export function FleetBoard({
   droppable = false,
   previewShip = null,
   label = "Your Fleet",
+  cellSize = 34,
+  onCellClick,
 }: FleetBoardProps) {
   const { setNodeRef, isOver } = useDroppable({ id: "fleet-board" });
 
@@ -71,7 +72,7 @@ export function FleetBoard({
         fontVariant: "small-caps",
         letterSpacing: "0.22em",
         fontSize: "11px",
-        color: "var(--ink-soft)",
+        color: "var(--gold-hi)",
         marginBottom: "6px",
       }}>{label}</p>
 
@@ -79,7 +80,7 @@ export function FleetBoard({
       <div style={{ display: "flex", paddingLeft: "20px", marginBottom: "2px" }}>
         {COL_LABELS.map((l) => (
           <div key={l} style={{
-            width: CELL_SIZE,
+            width: cellSize,
             textAlign: "center",
             fontFamily: "var(--mono)",
             fontSize: "9px",
@@ -94,7 +95,7 @@ export function FleetBoard({
         <div style={{ display: "flex", flexDirection: "column", marginRight: "2px" }}>
           {Array.from({ length: BOARD_SIZE }, (_, row) => (
             <div key={row} style={{
-              height: CELL_SIZE,
+              height: cellSize,
               width: "18px",
               display: "flex",
               alignItems: "center",
@@ -112,8 +113,8 @@ export function FleetBoard({
           ref={droppable ? setNodeRef : undefined}
           style={{
             display: "grid",
-            gridTemplateColumns: `repeat(${BOARD_SIZE}, ${CELL_SIZE}px)`,
-            gridTemplateRows: `repeat(${BOARD_SIZE}, ${CELL_SIZE}px)`,
+            gridTemplateColumns: `repeat(${BOARD_SIZE}, ${cellSize}px)`,
+            gridTemplateRows: `repeat(${BOARD_SIZE}, ${cellSize}px)`,
             position: "relative",
             border: borderColor,
             borderRadius: 4,
@@ -128,8 +129,11 @@ export function FleetBoard({
                 row={row}
                 col={col}
                 state={getCellState(row, col)}
-                cellSize={CELL_SIZE}
+                cellSize={cellSize}
                 boardType="fleet"
+                clickable={Boolean(onCellClick)}
+                onClick={onCellClick}
+                ariaLabel={`${label}, ${COL_LABELS[col]}${row + 1}`}
               />
             ))
           )}
@@ -145,8 +149,8 @@ export function FleetBoard({
                 key={`ship-${ship.type}`}
                 style={{
                   position: "absolute",
-                  top: first.row * CELL_SIZE,
-                  left: first.col * CELL_SIZE,
+                  top: first.row * cellSize,
+                  left: first.col * cellSize,
                   pointerEvents: "none",
                   zIndex: 2,
                   opacity: isSunk ? 0.55 : 1,
@@ -155,7 +159,7 @@ export function FleetBoard({
                 <ShipSvg
                   type={ship.type}
                   orientation={ship.orientation}
-                  cellSize={CELL_SIZE}
+                  cellSize={cellSize}
                   sunk={isSunk}
                   hitCount={ship.hits.length}
                 />
@@ -172,8 +176,8 @@ export function FleetBoard({
               <div
                 style={{
                   position: "absolute",
-                  top: first.row * CELL_SIZE,
-                  left: first.col * CELL_SIZE,
+                  top: first.row * cellSize,
+                  left: first.col * cellSize,
                   pointerEvents: "none",
                   zIndex: 3,
                   opacity: 0.75,
@@ -182,7 +186,7 @@ export function FleetBoard({
                 <ShipSvg
                   type={previewShip.type}
                   orientation={previewShip.orientation}
-                  cellSize={CELL_SIZE}
+                  cellSize={cellSize}
                 />
               </div>
             );
